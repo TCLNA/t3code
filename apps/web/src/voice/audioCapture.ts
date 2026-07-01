@@ -90,6 +90,8 @@ export class VoiceCaptureController {
   private smoothedLevel = 0;
   private lastVoiceAt = 0;
   private utteranceStartAt = 0;
+  /** Set by stop() so an in-flight start() tears down instead of going live. */
+  private disposed = false;
 
   constructor(callbacks: VoiceCaptureCallbacks, options?: VoiceCaptureOptions) {
     this.callbacks = callbacks;
@@ -108,14 +110,24 @@ export class VoiceCaptureController {
   }
 
   async start(): Promise<void> {
+    this.disposed = false;
     try {
-      this.stream = await navigator.mediaDevices.getUserMedia({
+      const stream = await navigator.mediaDevices.getUserMedia({
         audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
       });
       const context = new AudioContext();
-      this.context = context;
       await context.audioWorklet.addModule("/voice-worklet.js");
-      this.source = context.createMediaStreamSource(this.stream);
+      // stop() may have run while we were awaiting above; if so, tear down the
+      // resources we just created instead of leaving a live context that keeps
+      // firing utterances (and inserting dictated text more than once).
+      if (this.disposed) {
+        for (const track of stream.getTracks()) track.stop();
+        if (context.state !== "closed") await context.close().catch(() => undefined);
+        return;
+      }
+      this.stream = stream;
+      this.context = context;
+      this.source = context.createMediaStreamSource(stream);
       this.node = new AudioWorkletNode(context, "voice-capture-processor");
       this.node.port.onmessage = (event: MessageEvent<WorkletMessage>) => {
         this.handleFrame(event.data);
@@ -179,6 +191,7 @@ export class VoiceCaptureController {
   }
 
   async stop(): Promise<void> {
+    this.disposed = true;
     this.node?.port.close();
     this.node?.disconnect();
     this.source?.disconnect();
