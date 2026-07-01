@@ -909,6 +909,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   const recording = useVoiceStore((s) => s.recording);
   const ttsMuted = useVoiceStore((s) => s.ttsMuted);
   const toggleRecording = useVoiceStore((s) => s.toggleRecording);
+  const setRecording = useVoiceStore((s) => s.setRecording);
   const toggleTtsMuted = useVoiceStore((s) => s.toggleTtsMuted);
 
   // ------------------------------------------------------------------
@@ -1719,11 +1720,12 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   const submitComposer = useCallback(
     (event?: { preventDefault: () => void }) => {
       onSend(event);
+      setRecording(false);
       if (shouldBlurMobileComposerOnSubmit()) {
         blurMobileComposerAfterSend();
       }
     },
-    [blurMobileComposerAfterSend, onSend, shouldBlurMobileComposerOnSubmit],
+    [blurMobileComposerAfterSend, onSend, setRecording, shouldBlurMobileComposerOnSubmit],
   );
   const expandMobileComposer = useCallback(() => {
     if (composerBlurFrameRef.current !== null) {
