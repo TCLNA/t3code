@@ -25,6 +25,8 @@ export class TtsPlaybackController {
   private context: AudioContext | undefined;
   private analyser: AnalyserNode | undefined;
   private currentSource: AudioBufferSourceNode | undefined;
+  /** Resolves the in-flight playBuffer await so stop() can never wedge the pump. */
+  private endCurrentPlayback: (() => void) | undefined;
   private levelRaf = 0;
 
   private readonly units = new Map<number, PendingUnit>();
@@ -104,9 +106,11 @@ export class TtsPlaybackController {
     this.startLevelLoop();
 
     await new Promise<void>((resolve) => {
+      this.endCurrentPlayback = resolve;
       source.onended = () => resolve();
       source.start();
     });
+    this.endCurrentPlayback = undefined;
 
     this.currentSource = undefined;
     if (this.units.size === 0 || this.stopped) {
@@ -153,6 +157,9 @@ export class TtsPlaybackController {
       }
       this.currentSource = undefined;
     }
+    // Release any pump awaiting the (now-cancelled) source so it doesn't hang.
+    this.endCurrentPlayback?.();
+    this.endCurrentPlayback = undefined;
     this.stopLevelLoop();
     this.callbacks.onPlayingChange?.(false);
     this.playCursor = 0;

@@ -106,10 +106,17 @@ export function VoiceTtsProvider({ children }: { children: React.ReactNode }) {
       speak: (text: string) => {
         const playback = playbackRef.current;
         if (!playback) return;
-        const spoken = markdownToSpeakable(text).trim();
-        if (spoken.length === 0) return;
+        // Split into sentences and enqueue each as its own unit: the controller
+        // synthesizes them concurrently but plays them in order, so audio starts
+        // after the first short sentence instead of after the whole reply.
+        const spoken = markdownToSpeakable(text);
+        const { units, remainder } = segmentSpeakable(spoken);
+        const parts = [...units];
+        const tail = remainder.trim();
+        if (tail.length > 0) parts.push(tail);
+        if (parts.length === 0) return;
         playback.stop();
-        playback.enqueue(playback.nextIndex(), spoken);
+        for (const part of parts) playback.enqueue(playback.nextIndex(), part);
       },
       stop: () => playbackRef.current?.stop(),
     }),
