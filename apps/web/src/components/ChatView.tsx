@@ -142,6 +142,7 @@ import { cn, randomHex } from "~/lib/utils";
 import { COLLAPSED_SIDEBAR_TITLEBAR_INSET_CLASS } from "~/workspaceTitlebar";
 import { stackedThreadToast, toastManager } from "./ui/toast";
 import { decodeProjectScriptKeybindingRule } from "~/lib/projectScriptKeybindings";
+import { useVoiceStore } from "~/voice/useVoiceStore";
 import { type NewProjectScriptInput } from "./ProjectScriptsControl";
 import {
   commandForProjectScript,
@@ -3785,6 +3786,14 @@ function ChatViewContent(props: ChatViewProps) {
         return;
       }
 
+      if (command === "voice.toggleRecording") {
+        if (!settings.speech.sttEnabled) return;
+        event.preventDefault();
+        event.stopPropagation();
+        useVoiceStore.getState().toggleRecording();
+        return;
+      }
+
       const scriptId = projectScriptIdFromCommand(command);
       if (!scriptId || !activeProject) return;
       const script = activeProject.scripts.find((entry) => entry.id === scriptId);
@@ -3811,6 +3820,7 @@ function ChatViewContent(props: ChatViewProps) {
     splitPanelTerminal,
     keybindings,
     onToggleDiff,
+    settings,
     toggleRightPanel,
     toggleTerminalVisibility,
     composerRef,
