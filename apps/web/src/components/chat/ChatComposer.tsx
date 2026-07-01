@@ -107,6 +107,7 @@ import { proposedPlanTitle } from "../../proposedPlan";
 import { getProviderDisplayName, getProviderInteractionModeToggle } from "../../providerModels";
 import { dictationInsertText } from "../../voice/dictationInsert";
 import { useVoiceDictation } from "../../voice/useVoiceDictation";
+import { useVoiceStore } from "../../voice/useVoiceStore";
 import { useVoiceTts } from "../../voice/VoiceTtsProvider";
 import {
   applyProviderInstanceSettings,
@@ -350,9 +351,15 @@ const ComposerFooterPrimaryActions = memo(function ComposerFooterPrimaryActions(
   isEnvironmentUnavailable: boolean;
   hasSendableContent: boolean;
   preserveComposerFocusOnPointerDown?: boolean;
+  sttEnabled: boolean;
+  ttsEnabled: boolean;
+  recording: boolean;
+  ttsMuted: boolean;
   onPreviousPendingQuestion: () => void;
   onInterrupt: () => void;
   onImplementPlanInNewThread: () => void;
+  onToggleRecording: () => void;
+  onToggleMute: () => void;
 }) {
   return (
     <>
@@ -377,9 +384,15 @@ const ComposerFooterPrimaryActions = memo(function ComposerFooterPrimaryActions(
         isPreparingWorktree={props.isPreparingWorktree}
         hasSendableContent={props.hasSendableContent}
         preserveComposerFocusOnPointerDown={props.preserveComposerFocusOnPointerDown ?? false}
+        sttEnabled={props.sttEnabled}
+        ttsEnabled={props.ttsEnabled}
+        recording={props.recording}
+        ttsMuted={props.ttsMuted}
         onPreviousPendingQuestion={props.onPreviousPendingQuestion}
         onInterrupt={props.onInterrupt}
         onImplementPlanInNewThread={props.onImplementPlanInNewThread}
+        onToggleRecording={props.onToggleRecording}
+        onToggleMute={props.onToggleMute}
       />
     </>
   );
@@ -893,6 +906,10 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
     insertAtCursor: (text) => composerRef.current?.insertTextAtCursor(text),
     stopTts: voiceTts.stop,
   });
+  const recording = useVoiceStore((s) => s.recording);
+  const ttsMuted = useVoiceStore((s) => s.ttsMuted);
+  const toggleRecording = useVoiceStore((s) => s.toggleRecording);
+  const toggleTtsMuted = useVoiceStore((s) => s.toggleTtsMuted);
 
   // ------------------------------------------------------------------
   // Refs
@@ -2575,9 +2592,15 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                   isPreparingWorktree={isPreparingWorktree}
                   hasSendableContent={composerSendState.hasSendableContent}
                   preserveComposerFocusOnPointerDown={isMobileViewport}
+                  sttEnabled={settings.speech.sttEnabled}
+                  ttsEnabled={settings.speech.ttsEnabled}
+                  recording={recording}
+                  ttsMuted={ttsMuted}
                   onPreviousPendingQuestion={onPreviousActivePendingUserInputQuestion}
                   onInterrupt={handleInterruptPrimaryAction}
                   onImplementPlanInNewThread={handleImplementPlanInNewThreadPrimaryAction}
+                  onToggleRecording={toggleRecording}
+                  onToggleMute={toggleTtsMuted}
                 />
               </div>
             </div>

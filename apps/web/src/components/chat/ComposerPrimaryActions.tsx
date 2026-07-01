@@ -1,5 +1,5 @@
 import { memo, type PointerEventHandler } from "react";
-import { ChevronDownIcon, ChevronLeftIcon } from "lucide-react";
+import { ChevronDownIcon, ChevronLeftIcon, MicIcon, Volume2Icon, VolumeXIcon } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { Button } from "../ui/button";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "../ui/menu";
@@ -25,9 +25,15 @@ interface ComposerPrimaryActionsProps {
   isPreparingWorktree: boolean;
   hasSendableContent: boolean;
   preserveComposerFocusOnPointerDown?: boolean;
+  sttEnabled?: boolean;
+  ttsEnabled?: boolean;
+  recording?: boolean;
+  ttsMuted?: boolean;
   onPreviousPendingQuestion: () => void;
   onInterrupt: () => void;
   onImplementPlanInNewThread: () => void;
+  onToggleRecording?: () => void;
+  onToggleMute?: () => void;
 }
 
 export const formatPendingPrimaryActionLabel = (input: {
@@ -64,9 +70,15 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
   isPreparingWorktree,
   hasSendableContent,
   preserveComposerFocusOnPointerDown = false,
+  sttEnabled = false,
+  ttsEnabled = false,
+  recording = false,
+  ttsMuted = false,
   onPreviousPendingQuestion,
   onInterrupt,
   onImplementPlanInNewThread,
+  onToggleRecording,
+  onToggleMute,
 }: ComposerPrimaryActionsProps) {
   const pointerFocusProps = preserveComposerFocusOnPointerDown
     ? { onPointerDown: preventPointerFocus }
@@ -194,36 +206,67 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
   }
 
   return (
-    <button
-      type="submit"
-      className="flex h-9 w-9 enabled:cursor-pointer items-center justify-center rounded-full bg-primary/90 text-primary-foreground shadow-xs enabled:shadow-primary/24 enabled:inset-shadow-[0_1px_--theme(--color-white/16%)] transition-all duration-150 hover:bg-primary hover:scale-105 active:inset-shadow-[0_1px_--theme(--color-black/8%)] active:shadow-none disabled:pointer-events-none disabled:opacity-30 disabled:shadow-none disabled:hover:scale-100 sm:h-8 sm:w-8"
-      {...pointerFocusProps}
-      disabled={isSendBusy || isConnecting || isEnvironmentUnavailable || !hasSendableContent}
-      aria-label={
-        isEnvironmentUnavailable
-          ? "Environment disconnected"
-          : isConnecting
-            ? "Connecting"
-            : isPreparingWorktree
-              ? "Preparing worktree"
-              : isSendBusy
-                ? "Sending"
-                : "Send message"
-      }
-    >
-      {isConnecting || isSendBusy ? (
-        <Spinner className="size-3.5" aria-hidden="true" />
-      ) : (
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-          <path
-            d="M7 11.5V2.5M7 2.5L3 6.5M7 2.5L11 6.5"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
-      )}
-    </button>
+    <div className="flex items-center gap-1.5">
+      {ttsEnabled ? (
+        <button
+          type="button"
+          className="flex size-8 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:text-foreground/80"
+          {...pointerFocusProps}
+          onClick={onToggleMute}
+          aria-label={ttsMuted ? "Speak replies" : "Mute replies"}
+          aria-pressed={!ttsMuted}
+        >
+          {ttsMuted ? <VolumeXIcon className="size-4" /> : <Volume2Icon className="size-4" />}
+        </button>
+      ) : null}
+      {sttEnabled ? (
+        <button
+          type="button"
+          className={cn(
+            "flex h-9 w-9 cursor-pointer items-center justify-center rounded-full transition-all duration-150 hover:scale-105 sm:h-8 sm:w-8",
+            recording
+              ? "animate-pulse bg-red-500 text-white shadow-xs shadow-red-500/30"
+              : "bg-primary/90 text-primary-foreground shadow-xs enabled:shadow-primary/24 hover:bg-primary",
+          )}
+          {...pointerFocusProps}
+          onClick={onToggleRecording}
+          aria-label={recording ? "Stop recording (Alt+V)" : "Record (Alt+V)"}
+          aria-pressed={recording}
+        >
+          <MicIcon className="size-4" />
+        </button>
+      ) : null}
+      <button
+        type="submit"
+        className="flex h-9 w-9 enabled:cursor-pointer items-center justify-center rounded-full bg-primary/90 text-primary-foreground shadow-xs enabled:shadow-primary/24 enabled:inset-shadow-[0_1px_--theme(--color-white/16%)] transition-all duration-150 hover:bg-primary hover:scale-105 active:inset-shadow-[0_1px_--theme(--color-black/8%)] active:shadow-none disabled:pointer-events-none disabled:opacity-30 disabled:shadow-none disabled:hover:scale-100 sm:h-8 sm:w-8"
+        {...pointerFocusProps}
+        disabled={isSendBusy || isConnecting || isEnvironmentUnavailable || !hasSendableContent}
+        aria-label={
+          isEnvironmentUnavailable
+            ? "Environment disconnected"
+            : isConnecting
+              ? "Connecting"
+              : isPreparingWorktree
+                ? "Preparing worktree"
+                : isSendBusy
+                  ? "Sending"
+                  : "Send message"
+        }
+      >
+        {isConnecting || isSendBusy ? (
+          <Spinner className="size-3.5" aria-hidden="true" />
+        ) : (
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path
+              d="M7 11.5V2.5M7 2.5L3 6.5M7 2.5L11 6.5"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        )}
+      </button>
+    </div>
   );
 });
