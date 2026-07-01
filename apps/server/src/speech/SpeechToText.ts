@@ -45,6 +45,23 @@ const resolveConfigValue = (value: string | undefined, envKey: string): string =
   return fromEnv ?? "";
 };
 
+/**
+ * Strip whisper.cpp non-speech annotations from a transcript.
+ *
+ * whisper emits sound events wrapped in square brackets (`[BLANK_AUDIO]`,
+ * `[Music]`, `[silence]`) or parentheses (`(keyboard clicking)`,
+ * `(door opening)`) rather than as spoken words. Remove those bracketed
+ * segments and collapse the whitespace they leave behind.
+ */
+export const stripNonSpeechAnnotations = (text: string): string =>
+  text
+    .replace(/\[[^\]]*\]/g, " ")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/[^\S\n]+/g, " ")
+    .replace(/ *\n */g, "\n")
+    .replace(/\n{2,}/g, "\n")
+    .trim();
+
 export const make = Effect.gen(function* () {
   const fs = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
@@ -153,7 +170,7 @@ export const make = Effect.gen(function* () {
           .readFileString(`${outBase}.txt`)
           .pipe(Effect.orElseSucceed(() => result.stdout));
 
-        return { text: transcript.trim() };
+        return { text: stripNonSpeechAnnotations(transcript) };
       }),
     );
 

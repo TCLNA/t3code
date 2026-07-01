@@ -5,15 +5,17 @@
  * This is intentionally dependency-free (no markdown AST): it runs in the
  * browser TTS pipeline on every streamed delta, so it must be cheap and pure.
  * The goal is not perfect markdown parsing — it is to remove everything that
- * sounds like noise when spoken: fenced code blocks, inline code, URLs, image
- * syntax, and file-path-looking tokens, while keeping ordinary prose (and the
- * visible text of links).
+ * sounds like noise when spoken: fenced code blocks, URLs, image syntax, and
+ * file-path-looking tokens, while keeping ordinary prose (the visible text of
+ * links, and the inner text of inline `code` spans).
  */
 
 const FENCED_CODE_BLOCK = /```[\s\S]*?```|~~~[\s\S]*?~~~/g;
 // An unterminated fence (still-streaming code block): drop from the fence on.
 const UNTERMINATED_FENCE = /(?:```|~~~)[\s\S]*$/;
-const INLINE_CODE = /`[^`\n]*`/g;
+// Inline code: keep the inner text (it's short and worth speaking), drop only
+// the backticks. Fenced blocks are removed earlier, so this only sees `spans`.
+const INLINE_CODE = /`([^`\n]*)`/g;
 const IMAGE = /!\[[^\]]*\]\([^)]*\)/g;
 // [text](url) -> text
 const LINK = /\[([^\]]*)\]\((?:[^)]*)\)/g;
@@ -65,7 +67,7 @@ export function markdownToSpeakable(markdown: string): string {
   text = text.replace(IMAGE, " ");
   text = text.replace(REFERENCE_LINK, "$1");
   text = text.replace(LINK, "$1");
-  text = text.replace(INLINE_CODE, " ");
+  text = text.replace(INLINE_CODE, "$1");
   text = text.replace(HTML_TAG, " ");
   text = text.replace(BARE_URL, " ");
   text = text.replace(TABLE_ROW, " ");

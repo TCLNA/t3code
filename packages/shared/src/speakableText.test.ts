@@ -21,9 +21,10 @@ describe("markdownToSpeakable", () => {
     expect(spoken).toBe("Try this:");
   });
 
-  it("drops inline code", () => {
+  it("speaks inline code content but drops the backticks", () => {
     const spoken = markdownToSpeakable("Call the `useVoiceStore` hook now.");
-    expect(spoken).not.toContain("useVoiceStore");
+    expect(spoken).toContain("useVoiceStore");
+    expect(spoken).not.toContain("`");
     expect(spoken).toContain("Call the");
     expect(spoken).toContain("hook now.");
   });
