@@ -65,6 +65,7 @@ import { ProposedPlanCard } from "./ProposedPlanCard";
 import { ChangedFilesTree } from "./ChangedFilesTree";
 import { DiffStatLabel, hasNonZeroStat } from "./DiffStatLabel";
 import { MessageCopyButton } from "./MessageCopyButton";
+import { AssistantListenButton } from "./AssistantListenButton";
 import {
   computeStableMessagesTimelineRows,
   deriveMessagesTimelineRows,
@@ -997,6 +998,7 @@ function AssistantTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "mess
         {row.showAssistantMeta ? (
           <div className="mt-1.5 flex items-center gap-2 text-xs tabular-nums opacity-0 transition-opacity duration-200 focus-within:opacity-100 group-hover/assistant:opacity-100">
             <AssistantCopyButton row={row} />
+            <AssistantListenButton text={row.message.text} />
             {!row.message.streaming && (
               <Tooltip>
                 <TooltipTrigger
