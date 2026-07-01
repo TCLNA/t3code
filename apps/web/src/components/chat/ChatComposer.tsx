@@ -105,6 +105,9 @@ import {
 } from "lucide-react";
 import { proposedPlanTitle } from "../../proposedPlan";
 import { getProviderDisplayName, getProviderInteractionModeToggle } from "../../providerModels";
+import { dictationInsertText } from "../../voice/dictationInsert";
+import { useVoiceDictation } from "../../voice/useVoiceDictation";
+import { useVoiceTts } from "../../voice/VoiceTtsProvider";
 import {
   applyProviderInstanceSettings,
   deriveProviderInstanceEntries,
@@ -390,6 +393,7 @@ export interface ChatComposerHandle {
   focusAtEnd: () => void;
   focusAt: (cursor: number) => void;
   insertTextAtEnd: (text: string) => boolean;
+  insertTextAtCursor: (text: string) => boolean;
   openModelPicker: () => void;
   toggleModelPicker: () => void;
   isModelPickerOpen: () => boolean;
@@ -883,6 +887,12 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   const [isComposerFocused, setIsComposerFocused] = useState(false);
   const isMobileViewport = useMediaQuery("max-sm");
   const isComposerCollapsedMobile = isMobileViewport && !isComposerFocused;
+
+  const voiceTts = useVoiceTts();
+  useVoiceDictation({
+    insertAtCursor: (text) => composerRef.current?.insertTextAtCursor(text),
+    stopTts: voiceTts.stop,
+  });
 
   // ------------------------------------------------------------------
   // Refs
@@ -1930,6 +1940,20 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
         }
         const rangeEnd = promptRef.current.length;
         return applyPromptReplacement(rangeEnd, rangeEnd, text);
+      },
+      insertTextAtCursor: (text: string) => {
+        if (
+          isConnecting ||
+          isComposerApprovalState ||
+          pendingUserInputs.length > 0 ||
+          (environmentUnavailable !== null && activePendingProgress === null)
+        ) {
+          return false;
+        }
+        const expandedCursor = expandCollapsedComposerCursor(promptRef.current, composerCursor);
+        const insertText = dictationInsertText(promptRef.current, expandedCursor, text);
+        if (insertText.length === 0) return false;
+        return applyPromptReplacement(expandedCursor, expandedCursor, insertText);
       },
       openModelPicker: () => {
         setIsComposerModelPickerOpen(true);
