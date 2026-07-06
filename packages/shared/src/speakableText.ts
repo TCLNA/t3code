@@ -44,16 +44,29 @@ const COMMON_FILE_EXTENSIONS = new Set([
   "lock", "sql", "xml", "svg", "png", "jpg", "jpeg", "gif", "wasm", "txt", "sh",
 ]);
 
-function stripPathLike(text: string): string {
+function markPathLike(text: string): string {
   return text.replace(PATH_LIKE, (match) => {
-    // Keep tokens that are plainly prose ending in a sentence-final period,
-    // e.g. "done." — only drop tokens whose extension looks like a real file.
-    if (match.includes("/")) return " ";
+    if (match.includes("/")) return `[PATH:${match}]`;
     const dot = match.lastIndexOf(".");
     if (dot === -1) return match;
     const ext = match.slice(dot + 1).split(":")[0]?.toLowerCase() ?? "";
-    return COMMON_FILE_EXTENSIONS.has(ext) ? " " : match;
+    return COMMON_FILE_EXTENSIONS.has(ext) ? `[PATH:${match}]` : match;
   });
+}
+
+function markArrows(text: string): string {
+  // Match existing markers first (keep them), then arrow tokens (mark them).
+  return text.replace(/\[(?:CODE|PATH):[^\]]*\]|-->|->|=>|<-/g, (match) =>
+    match.startsWith("[") ? match : `[ARROW:${match}]`,
+  );
+}
+
+/** Strip markers to plain text — used as a fallback when LLM humanization fails. */
+export function stripMarkers(text: string): string {
+  return text
+    .replace(/\[CODE:([^\]]*)\]/g, "$1")
+    .replace(/\[PATH:[^\]]*\]/g, "")
+    .replace(/\[ARROW:[^\]]*\]/g, ",");
 }
 
 /**
@@ -67,7 +80,7 @@ export function markdownToSpeakable(markdown: string): string {
   text = text.replace(IMAGE, " ");
   text = text.replace(REFERENCE_LINK, "$1");
   text = text.replace(LINK, "$1");
-  text = text.replace(INLINE_CODE, "$1");
+  text = text.replace(INLINE_CODE, "[CODE:$1]");
   text = text.replace(HTML_TAG, " ");
   text = text.replace(BARE_URL, " ");
   text = text.replace(TABLE_ROW, " ");
@@ -75,7 +88,8 @@ export function markdownToSpeakable(markdown: string): string {
   text = text.replace(MARKDOWN_HEADING, "");
   text = text.replace(BLOCKQUOTE, "");
   text = text.replace(LIST_MARKER, "");
-  text = stripPathLike(text);
+  text = markPathLike(text);
+  text = markArrows(text);
   text = text.replace(EMPHASIS_MARKERS, "");
   // Collapse whitespace (including the gaps left by removals).
   text = text.replace(/[ \t]+/g, " ").replace(/\s*\n\s*/g, "\n").trim();
