@@ -4,6 +4,7 @@ import {
   detectSendPromptCodeword,
   markdownToSpeakable,
   segmentSpeakable,
+  stripMarkers,
 } from "./speakableText.ts";
 
 describe("markdownToSpeakable", () => {
@@ -21,9 +22,9 @@ describe("markdownToSpeakable", () => {
     expect(spoken).toBe("Try this:");
   });
 
-  it("speaks inline code content but drops the backticks", () => {
+  it("marks inline code with [CODE:…] and removes backticks", () => {
     const spoken = markdownToSpeakable("Call the `useVoiceStore` hook now.");
-    expect(spoken).toContain("useVoiceStore");
+    expect(spoken).toContain("[CODE:useVoiceStore]");
     expect(spoken).not.toContain("`");
     expect(spoken).toContain("Call the");
     expect(spoken).toContain("hook now.");
@@ -41,10 +42,10 @@ describe("markdownToSpeakable", () => {
     expect(spoken).toContain("Open");
   });
 
-  it("drops file paths", () => {
+  it("marks file paths with [PATH:…] instead of dropping them", () => {
     const spoken = markdownToSpeakable("Edit src/index.ts and package.json please.");
-    expect(spoken).not.toContain("src/index.ts");
-    expect(spoken).not.toContain("package.json");
+    expect(spoken).toContain("[PATH:src/index.ts]");
+    expect(spoken).toContain("[PATH:package.json]");
     expect(spoken).toContain("Edit");
     expect(spoken).toContain("please.");
   });
@@ -61,6 +62,56 @@ describe("markdownToSpeakable", () => {
   it("does not treat sentence-final words as file paths", () => {
     const spoken = markdownToSpeakable("We are done.");
     expect(spoken).toBe("We are done.");
+  });
+
+  it("marks prose arrows with [ARROW:…]", () => {
+    const spoken = markdownToSpeakable("State goes from false -> true on submit.");
+    expect(spoken).toContain("[ARROW:->]");
+    // No bare arrow outside a marker
+    expect(spoken.replace(/\[ARROW:[^\]]*\]/g, "")).not.toContain("->");
+  });
+
+  it("marks => arrows", () => {
+    const spoken = markdownToSpeakable("Each item => its processed form.");
+    expect(spoken).toContain("[ARROW:=>]");
+  });
+
+  it("marks --> arrows", () => {
+    const spoken = markdownToSpeakable("Step A --> Step B.");
+    expect(spoken).toContain("[ARROW:-->]");
+  });
+
+  it("arrows inside inline code stay within the CODE marker, not separately marked", () => {
+    const spoken = markdownToSpeakable("The `false -> true` transition.");
+    // The arrow inside backtick content is preserved inside [CODE:…] as-is
+    expect(spoken).toContain("[CODE:false -> true]");
+    // No separate [ARROW:->] marker is emitted
+    expect(spoken).not.toContain("[ARROW:->]");
+  });
+
+  it("does not mark arrows inside CODE markers", () => {
+    const spoken = markdownToSpeakable("Use `a -> b` pattern.");
+    const arrowCount = (spoken.match(/\[ARROW:/g) ?? []).length;
+    expect(arrowCount).toBe(0); // arrow stays inside CODE, not separately marked
+  });
+});
+
+describe("stripMarkers", () => {
+  it("expands CODE markers back to their inner text", () => {
+    expect(stripMarkers("[CODE:useVoiceStore]")).toBe("useVoiceStore");
+  });
+
+  it("removes PATH markers entirely", () => {
+    expect(stripMarkers("[PATH:src/components/Foo.tsx]")).toBe("");
+  });
+
+  it("replaces ARROW markers with a comma", () => {
+    expect(stripMarkers("[ARROW:->]")).toBe(",");
+  });
+
+  it("handles mixed marker sentence", () => {
+    const result = stripMarkers("Update [CODE:useVoiceStore] so [PATH:foo.ts] returns [ARROW:->] value.");
+    expect(result).toBe("Update useVoiceStore so  returns , value.");
   });
 });
 
