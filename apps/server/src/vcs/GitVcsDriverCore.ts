@@ -1342,9 +1342,10 @@ export const makeGitVcsDriverCore = Effect.fn("makeGitVcsDriverCore")(function* 
     const [unstagedNumstatStdout, stagedNumstatStdout, defaultRefResult, hasPrimaryRemote] =
       yield* Effect.all(
         [
-          runGitStdout("GitVcsDriver.statusDetails.unstagedNumstat", cwd, ["diff", "--numstat"]),
+          runGitStdout("GitVcsDriver.statusDetails.unstagedNumstat", cwd, ["diff", "--no-ext-diff", "--numstat"]),
           runGitStdout("GitVcsDriver.statusDetails.stagedNumstat", cwd, [
             "diff",
+            "--no-ext-diff",
             "--cached",
             "--numstat",
           ]),
@@ -1781,7 +1782,7 @@ export const makeGitVcsDriverCore = Effect.fn("makeGitVcsDriverCore")(function* 
         runGitStdoutWithOptions(
           "GitVcsDriver.readRangeContext.diffStat",
           cwd,
-          ["diff", "--stat", range],
+          ["diff", "--no-ext-diff", "--stat", range],
           {
             maxOutputBytes: RANGE_DIFF_SUMMARY_MAX_OUTPUT_BYTES,
             appendTruncationMarker: true,
@@ -1828,7 +1829,7 @@ export const makeGitVcsDriverCore = Effect.fn("makeGitVcsDriverCore")(function* 
         executeGit(
           "GitVcsDriver.readUntrackedReviewDiffs.diff",
           cwd,
-          ["diff", "--no-index", "--patch", "--minimal", "--", "/dev/null", relativePath],
+          ["diff", "--no-ext-diff", "--no-index", "--patch", "--minimal", "--", "/dev/null", relativePath],
           {
             allowNonZeroExit: true,
             maxOutputBytes: REVIEW_UNTRACKED_DIFF_MAX_OUTPUT_BYTES,
@@ -1872,6 +1873,7 @@ export const makeGitVcsDriverCore = Effect.fn("makeGitVcsDriverCore")(function* 
       input.cwd,
       [
         "diff",
+        "--no-ext-diff",
         "--patch",
         "--minimal",
         ...(input.ignoreWhitespace ? ["--ignore-all-space"] : []),
@@ -1905,6 +1907,7 @@ export const makeGitVcsDriverCore = Effect.fn("makeGitVcsDriverCore")(function* 
             input.cwd,
             [
               "diff",
+              "--no-ext-diff",
               "--patch",
               "--minimal",
               ...(input.ignoreWhitespace ? ["--ignore-all-space"] : []),

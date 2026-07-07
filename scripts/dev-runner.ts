@@ -29,6 +29,14 @@ const MAX_PORT = 65535;
 const DESKTOP_DEV_LOOPBACK_HOST = "127.0.0.1";
 const DEV_PORT_PROBE_HOSTS = ["127.0.0.1", "0.0.0.0", "::1", "::"] as const;
 
+// Mirror of apps/server/src/startupAccess.ts. Kept local to avoid a cross-package
+// import from apps/server into the dev tooling.
+const isWildcardHost = (host: string): boolean =>
+  host === "0.0.0.0" || host === "::" || host === "[::]";
+
+const formatHostForUrl = (host: string): string =>
+  host.includes(":") && !host.startsWith("[") ? `[${host}]` : host;
+
 export const DEFAULT_T3_HOME = Effect.map(Effect.service(Path.Path), (path) =>
   path.join(NodeOS.homedir(), ".t3"),
 );
@@ -248,19 +256,26 @@ export function createDevRunnerEnv({
     const resolvedBaseDir = yield* resolveBaseDir(t3Home);
     const isDesktopMode = mode === "dev:desktop";
 
+    // When a non-loopback --host is supplied the server binds to that address
+    // only, so the web client's proxy target and WebSocket URL must point there
+    // too (localhost has no listener). Wildcard binds stay on localhost since it
+    // is reachable on every interface.
+    const clientHost =
+      !isDesktopMode && host && !isWildcardHost(host) ? formatHostForUrl(host) : "localhost";
+
     const output: NodeJS.ProcessEnv = {
       ...baseEnv,
       PORT: String(webPort),
       VITE_DEV_SERVER_URL:
         devUrl?.toString() ??
-        `http://${isDesktopMode ? DESKTOP_DEV_LOOPBACK_HOST : "localhost"}:${webPort}`,
+        `http://${isDesktopMode ? DESKTOP_DEV_LOOPBACK_HOST : clientHost}:${webPort}`,
       T3CODE_HOME: resolvedBaseDir,
     };
 
     if (!isDesktopMode) {
       output.T3CODE_PORT = String(serverPort);
-      output.VITE_HTTP_URL = `http://localhost:${serverPort}`;
-      output.VITE_WS_URL = `ws://localhost:${serverPort}`;
+      output.VITE_HTTP_URL = `http://${clientHost}:${serverPort}`;
+      output.VITE_WS_URL = `ws://${clientHost}:${serverPort}`;
     } else {
       output.T3CODE_PORT = String(serverPort);
       output.VITE_HTTP_URL = `http://${DESKTOP_DEV_LOOPBACK_HOST}:${serverPort}`;

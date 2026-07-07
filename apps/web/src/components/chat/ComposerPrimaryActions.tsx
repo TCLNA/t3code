@@ -1,5 +1,5 @@
 import { memo, type PointerEventHandler } from "react";
-import { ChevronDownIcon, ChevronLeftIcon, MicIcon, Volume2Icon, VolumeXIcon } from "lucide-react";
+import { ChevronDownIcon, ChevronLeftIcon, MicIcon } from "lucide-react";
 import { cn } from "~/lib/utils";
 import { Button } from "../ui/button";
 import { Menu, MenuItem, MenuPopup, MenuTrigger } from "../ui/menu";
@@ -25,16 +25,13 @@ interface ComposerPrimaryActionsProps {
   isPreparingWorktree: boolean;
   hasSendableContent: boolean;
   preserveComposerFocusOnPointerDown?: boolean;
-  // Voice controls. Optional because the two pending-question call sites hit the early-return branch and never render the mic/mute buttons; only the main composer passes these.
+  // Voice controls. Optional because the two pending-question call sites hit the early-return branch and never render the mic button; only the main composer passes these.
   sttEnabled?: boolean;
-  ttsEnabled?: boolean;
   recording?: boolean;
-  ttsMuted?: boolean;
   onPreviousPendingQuestion: () => void;
   onInterrupt: () => void;
   onImplementPlanInNewThread: () => void;
   onToggleRecording?: () => void;
-  onToggleMute?: () => void;
 }
 
 export const formatPendingPrimaryActionLabel = (input: {
@@ -72,14 +69,11 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
   hasSendableContent,
   preserveComposerFocusOnPointerDown = false,
   sttEnabled = false,
-  ttsEnabled = false,
   recording = false,
-  ttsMuted = false,
   onPreviousPendingQuestion,
   onInterrupt,
   onImplementPlanInNewThread,
   onToggleRecording,
-  onToggleMute,
 }: ComposerPrimaryActionsProps) {
   const pointerFocusProps = preserveComposerFocusOnPointerDown
     ? { onPointerDown: preventPointerFocus }
@@ -227,18 +221,6 @@ export const ComposerPrimaryActions = memo(function ComposerPrimaryActions({
 
   return (
     <div className="flex items-center gap-1.5">
-      {ttsEnabled ? (
-        <button
-          type="button"
-          className="flex size-8 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:text-foreground/80"
-          {...pointerFocusProps}
-          onClick={onToggleMute}
-          aria-label={ttsMuted ? "Speak replies" : "Mute replies"}
-          aria-pressed={!ttsMuted}
-        >
-          {ttsMuted ? <VolumeXIcon className="size-4" /> : <Volume2Icon className="size-4" />}
-        </button>
-      ) : null}
       {sttEnabled ? (
         <button
           type="button"

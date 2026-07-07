@@ -177,6 +177,29 @@ it.layer(NodeServices.layer)("dev-runner", (it) => {
       }),
     );
 
+    it.effect("points client urls at a non-loopback --host so remote access works", () =>
+      Effect.gen(function* () {
+        const env = yield* createDevRunnerEnv({
+          mode: "dev",
+          baseEnv: {},
+          serverOffset: 0,
+          webOffset: 0,
+          t3Home: undefined,
+          noBrowser: undefined,
+          autoBootstrapProjectFromCwd: undefined,
+          logWebSocketEvents: undefined,
+          host: "100.83.118.18",
+          port: undefined,
+          devUrl: undefined,
+        });
+
+        assert.equal(env.T3CODE_HOST, "100.83.118.18");
+        assert.equal(env.VITE_DEV_SERVER_URL, "http://100.83.118.18:5733");
+        assert.equal(env.VITE_HTTP_URL, "http://100.83.118.18:13773");
+        assert.equal(env.VITE_WS_URL, "ws://100.83.118.18:13773");
+      }),
+    );
+
     it.effect("does not force websocket logging on in dev mode when unset", () =>
       Effect.gen(function* () {
         const env = yield* createDevRunnerEnv({

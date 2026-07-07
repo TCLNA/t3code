@@ -5,6 +5,8 @@ import { ProviderInstanceId } from "./providerInstance.ts";
 import {
   ClientSettingsSchema,
   DEFAULT_SERVER_SETTINGS,
+  DEFAULT_KOKORO_VOICE,
+  KOKORO_VOICES,
   ServerSettings,
   ServerSettingsPatch,
 } from "./settings.ts";
@@ -184,5 +186,30 @@ describe("ServerSettingsPatch string normalization", () => {
 
     expect(encoded.addProjectBaseDirectory).toBe("~/Development");
     expect(encoded.providers?.codex?.binaryPath).toBe("/opt/homebrew/bin/codex");
+  });
+});
+
+describe("SpeechSettings.kokoroEnabledVoices", () => {
+  it("defaults to all KOKORO_VOICES when speech key is absent", () => {
+    const decoded = decodeServerSettings({});
+    expect(decoded.speech.kokoroEnabledVoices).toEqual([...KOKORO_VOICES]);
+  });
+
+  it("round-trips a partial enabled list", () => {
+    const decoded = decodeServerSettings({
+      speech: { kokoroEnabledVoices: ["af_heart", "am_adam"] },
+    });
+    expect(decoded.speech.kokoroEnabledVoices).toEqual(["af_heart", "am_adam"]);
+  });
+
+  it("accepts kokoroEnabledVoices in ServerSettingsPatch.speech", () => {
+    const patch = decodeServerSettingsPatch({
+      speech: { kokoroEnabledVoices: ["bf_emma"] },
+    });
+    expect(patch.speech?.kokoroEnabledVoices).toEqual(["bf_emma"]);
+  });
+
+  it("KOKORO_VOICES contains DEFAULT_KOKORO_VOICE", () => {
+    expect(KOKORO_VOICES).toContain(DEFAULT_KOKORO_VOICE);
   });
 });

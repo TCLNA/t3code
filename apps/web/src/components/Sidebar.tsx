@@ -12,6 +12,8 @@ import {
   SquarePenIcon,
   TerminalIcon,
   TriangleAlertIcon,
+  Volume2Icon,
+  VolumeXIcon,
 } from "lucide-react";
 import {
   ChangeRequestStatusIcon,
@@ -206,7 +208,8 @@ import { useCopyToClipboard } from "~/hooks/useCopyToClipboard";
 import { useIsMobile } from "~/hooks/useMediaQuery";
 import { CommandDialogTrigger } from "./ui/command";
 import { useClientSettings, useUpdateClientSettings } from "~/hooks/useSettings";
-import { primaryServerConfigAtom, primaryServerKeybindingsAtom } from "../state/server";
+import { useVoiceStore } from "~/voice/useVoiceStore";
+import { primaryServerConfigAtom, primaryServerKeybindingsAtom, primaryServerSettingsAtom } from "../state/server";
 import {
   derivePhysicalProjectKey,
   deriveProjectGroupingOverrideKey,
@@ -2737,6 +2740,26 @@ function SortableProjectItem({
   );
 }
 
+function SidebarTtsMuteButton() {
+  const settings = useAtomValue(primaryServerSettingsAtom);
+  const ttsMuted = useVoiceStore((s) => s.ttsMuted);
+  const toggleTtsMuted = useVoiceStore((s) => s.toggleTtsMuted);
+
+  if (!settings.speech.ttsEnabled) return null;
+
+  return (
+    <button
+      type="button"
+      className="ml-auto flex size-8 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:text-foreground/80"
+      onClick={toggleTtsMuted}
+      aria-label={ttsMuted ? "Speak replies" : "Mute replies"}
+      aria-pressed={!ttsMuted}
+    >
+      {ttsMuted ? <VolumeXIcon className="size-4" /> : <Volume2Icon className="size-4" />}
+    </button>
+  );
+}
+
 const SidebarChromeHeader = memo(function SidebarChromeHeader({
   isElectron,
 }: {
@@ -2746,11 +2769,13 @@ const SidebarChromeHeader = memo(function SidebarChromeHeader({
     <SidebarHeader className="@container/sidebar-header drag-region h-[var(--workspace-topbar-height)] shrink-0 flex-row items-center px-3 py-0 md:px-0">
       <SidebarTrigger className="md:hidden" />
       <SidebarBrand />
+      <SidebarTtsMuteButton />
     </SidebarHeader>
   ) : (
     <SidebarHeader className="@container/sidebar-header h-[var(--workspace-topbar-height)] shrink-0 flex-row items-center px-3 py-0 md:px-0">
       <SidebarTrigger className="md:hidden" />
       <SidebarBrand />
+      <SidebarTtsMuteButton />
     </SidebarHeader>
   );
 });

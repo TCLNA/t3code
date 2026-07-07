@@ -64,3 +64,19 @@ export class TextToSpeechError extends Schema.TaggedErrorClass<TextToSpeechError
     return `Text-to-speech failed (${this.reason})${this.detail ? `: ${this.detail}` : ""}`;
   }
 }
+
+// ── Speech humanization ────────────────────────────────────────
+
+/**
+ * Request body for `POST /api/tts/humanize`. One sentence-sized unit containing
+ * [CODE:…], [PATH:…], [ARROW:…] markers; response is `{ humanized: string }`.
+ */
+export const SpeechHumanizeRequest = Schema.Struct({
+  sentence: TrimmedNonEmptyString,
+});
+export type SpeechHumanizeRequest = typeof SpeechHumanizeRequest.Type;
+
+export const SpeechHumanizeResult = Schema.Struct({
+  humanized: Schema.String,
+});
+export type SpeechHumanizeResult = typeof SpeechHumanizeResult.Type;

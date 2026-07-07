@@ -15,6 +15,7 @@ import {
   PilcrowIcon,
   Rows3Icon,
   SearchIcon,
+  SparklesIcon,
   TextWrapIcon,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -66,7 +67,7 @@ import { reviewEnvironment } from "../state/review";
 import { vcsEnvironment } from "../state/vcs";
 import { buildBaseRefChoices, filterBaseRefChoices } from "../lib/baseRefChoices";
 
-type DiffRenderMode = "stacked" | "split";
+type DiffRenderMode = "stacked" | "split" | "smart";
 type DiffThemeType = "light" | "dark";
 const AUTOMATIC_BASE_REF = "__automatic_base_ref__";
 
@@ -680,7 +681,7 @@ export default function DiffPanel({ mode = "inline", composerDraftTarget }: Diff
           value={[diffRenderMode]}
           onValueChange={(value) => {
             const next = value[0];
-            if (next === "stacked" || next === "split") {
+            if (next === "stacked" || next === "split" || next === "smart") {
               setDiffRenderMode(next);
             }
           }}
@@ -691,6 +692,12 @@ export default function DiffPanel({ mode = "inline", composerDraftTarget }: Diff
           <Toggle aria-label="Split diff view" value="split">
             <Columns2Icon className="size-3" />
           </Toggle>
+          <Tooltip>
+            <TooltipTrigger render={<Toggle aria-label="Semantic diff view" value="smart" />}>
+              <SparklesIcon className="size-3" />
+            </TooltipTrigger>
+            <TooltipPopup side="top">Semantic diff (word-level highlights)</TooltipPopup>
+          </Tooltip>
         </ToggleGroup>
         <Tooltip>
           <TooltipTrigger
@@ -841,8 +848,8 @@ export default function DiffPanel({ mode = "inline", composerDraftTarget }: Diff
                     );
                   }}
                   options={{
-                    diffStyle: diffRenderMode === "split" ? "split" : "unified",
-                    lineDiffType: "none",
+                    diffStyle: diffRenderMode === "split" || diffRenderMode === "smart" ? "split" : "unified",
+                    lineDiffType: diffRenderMode === "smart" ? "word" : "none",
                     overflow: wordWrap ? "wrap" : "scroll",
                     theme: resolveDiffThemeName(resolvedTheme),
                     themeType: resolvedTheme as DiffThemeType,

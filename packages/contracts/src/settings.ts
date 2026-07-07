@@ -365,6 +365,20 @@ export type ObservabilitySettings = typeof ObservabilitySettings.Type;
 
 export const DEFAULT_KOKORO_VOICE = "af_heart";
 
+export const KOKORO_VOICES = [
+  "af_heart",
+  "af_bella",
+  "af_nova",
+  "af_sky",
+  "af_sarah",
+  "am_adam",
+  "am_michael",
+  "bf_emma",
+  "bf_isabella",
+  "bm_george",
+  "bm_lewis",
+] as const;
+
 /**
  * Local, self-hosted voice mode. Speech-to-text runs whisper.cpp and
  * text-to-speech runs Kokoro, both as native processes on the server. The
@@ -430,6 +444,13 @@ export const SpeechSettings = makeProviderSettingsSchema(
         providerSettingsForm: { placeholder: DEFAULT_KOKORO_VOICE, clearWhenEmpty: "omit" },
       }),
     ),
+    kokoroEnabledVoices: Schema.Array(Schema.String).pipe(
+      Schema.withDecodingDefault(Effect.succeed([...KOKORO_VOICES])),
+      Schema.annotateKey({
+        title: "Enabled voices",
+        description: "Voices available in the sidebar voice picker.",
+      }),
+    ),
   },
   {
     order: [
@@ -440,6 +461,7 @@ export const SpeechSettings = makeProviderSettingsSchema(
       "kokoroCommand",
       "kokoroModelPath",
       "kokoroVoice",
+      "kokoroEnabledVoices",
     ],
   },
 );
