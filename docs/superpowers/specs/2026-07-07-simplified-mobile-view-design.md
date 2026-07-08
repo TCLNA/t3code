@@ -212,3 +212,27 @@ uses Tailwind v4 CSS-first tokens in `apps/web/src/index.css`.
 - Ember palette / dark theme port as an opt-in simplified theme.
 - Full 3A question/verify turn UI (option cards, write-another, verify review).
 - Wake-word ("hey …") always-listening affordance shown in the mockup.
+
+### Deferred after implementation review (2026-07-09)
+
+Implemented in this iteration except where noted; the following were reviewed
+and consciously deferred (finding #1 was fixed, the rest logged here):
+
+- **Mic wiring (Minor #2):** the simplified `ListeningBar` mic only toggles the
+  global `useVoiceStore.recording` flag; it does not yet reuse `useVoiceDictation`
+  (transcript insertion / send) and is not disabled when
+  `settings.speech.sttEnabled`/`ttsEnabled` are off. Wire dictation + gating.
+- **Project names (Minor #3):** session cards and the Projects tab render the
+  raw branded `projectId`; resolve human-readable names via `useProjects`.
+- **"Done today" time filter (Minor #4):** `groupSessionsByStatus` buckets all
+  non-running/non-needs-you threads as "Done" regardless of `updatedAt`
+  (`_nowMs` is currently unused). Filter to today and relabel.
+- **Settings/onboarding edges (Minor #5):** the 2A settings gear opens
+  `/settings/general` inside the bare shell with no back-affordance to 2A; and
+  `_chat.index`'s simplified branch runs before the hosted-static onboarding
+  check, so a zero-environment hosted-static user sees "No sessions yet" instead
+  of onboarding.
+
+Note: the "Start new session" CTA (finding #1) WAS fixed — it now calls the real
+`useHandleNewThread` flow and unstarted drafts render the working `ChatView`
+composer in simplified mode.
