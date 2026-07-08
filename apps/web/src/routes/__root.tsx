@@ -4,6 +4,7 @@ import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime"
 import {
   Outlet,
   createRootRoute,
+  retainSearchParams,
   type ErrorComponentProps,
   useLocation,
   useNavigate,
@@ -51,6 +52,7 @@ import {
   createKeybindingsUpdateToastController,
   type KeybindingsUpdateToastController,
 } from "../components/KeybindingsUpdateToast.logic";
+import { parseSimplifiedSearch } from "../components/simplified/useSimplifiedMode";
 
 export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
@@ -80,6 +82,13 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [{ name: "title", content: APP_DISPLAY_NAME }],
   }),
+  validateSearch: (search: Record<string, unknown>): { simplified?: boolean } => {
+    const simplified = parseSimplifiedSearch(search.simplified);
+    return simplified === undefined ? {} : { simplified };
+  },
+  search: {
+    middlewares: [retainSearchParams(["simplified"])],
+  },
 });
 
 function RootRouteView() {
