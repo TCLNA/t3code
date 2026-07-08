@@ -1,6 +1,7 @@
 import {
   ArchiveIcon,
   ArrowUpDownIcon,
+  CheckIcon,
   ChevronRightIcon,
   CloudIcon,
   ContainerIcon,
@@ -45,7 +46,9 @@ import { restrictToFirstScrollableAncestor, restrictToVerticalAxis } from "@dnd-
 import { CSS } from "@dnd-kit/utilities";
 import {
   type ContextMenuItem,
+  DEFAULT_KOKORO_VOICE,
   DEFAULT_SERVER_SETTINGS,
+  KOKORO_VOICES,
   ProjectId,
   type ScopedThreadRef,
   type ResolvedKeybindingsConfig,
@@ -79,7 +82,7 @@ import { isElectron } from "../env";
 import { APP_STAGE_LABEL } from "../branding";
 import { useOpenPrLink } from "../lib/openPullRequestLink";
 import { isTerminalFocused } from "../lib/terminalFocus";
-import { isMacPlatform } from "../lib/utils";
+import { cn, isMacPlatform } from "../lib/utils";
 import {
   readThreadShell,
   useProject,
@@ -168,6 +171,8 @@ import {
 } from "./ui/number-field";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "./ui/select";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "./ui/tooltip";
+import { Popover, PopoverPopup, PopoverTrigger } from "~/components/ui/popover";
+import { Switch } from "~/components/ui/switch";
 import {
   SidebarContent,
   SidebarFooter,
@@ -207,7 +212,7 @@ import { SidebarUpdatePill } from "./sidebar/SidebarUpdatePill";
 import { useCopyToClipboard } from "~/hooks/useCopyToClipboard";
 import { useIsMobile } from "~/hooks/useMediaQuery";
 import { CommandDialogTrigger } from "./ui/command";
-import { useClientSettings, useUpdateClientSettings } from "~/hooks/useSettings";
+import { useClientSettings, useUpdateClientSettings, useUpdatePrimarySettings } from "~/hooks/useSettings";
 import { useVoiceStore } from "~/voice/useVoiceStore";
 import { primaryServerConfigAtom, primaryServerKeybindingsAtom, primaryServerSettingsAtom } from "../state/server";
 import {
@@ -2740,23 +2745,60 @@ function SortableProjectItem({
   );
 }
 
-function SidebarTtsMuteButton() {
+function SidebarVoiceDropdown() {
   const settings = useAtomValue(primaryServerSettingsAtom);
+  const updateSettings = useUpdatePrimarySettings();
   const ttsMuted = useVoiceStore((s) => s.ttsMuted);
   const toggleTtsMuted = useVoiceStore((s) => s.toggleTtsMuted);
 
   if (!settings.speech.ttsEnabled) return null;
 
+  const enabledVoices = settings.speech.kokoroEnabledVoices ?? [...KOKORO_VOICES];
+  const activeVoice = settings.speech.kokoroVoice || DEFAULT_KOKORO_VOICE;
+
   return (
-    <button
-      type="button"
-      className="ml-auto flex size-8 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:text-foreground/80"
-      onClick={toggleTtsMuted}
-      aria-label={ttsMuted ? "Speak replies" : "Mute replies"}
-      aria-pressed={!ttsMuted}
-    >
-      {ttsMuted ? <VolumeXIcon className="size-4" /> : <Volume2Icon className="size-4" />}
-    </button>
+    <Popover>
+      <PopoverTrigger
+        className="ml-auto flex size-8 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:text-foreground/80"
+        aria-label="Voice options"
+      >
+        {ttsMuted ? <VolumeXIcon className="size-4" /> : <Volume2Icon className="size-4" />}
+      </PopoverTrigger>
+      <PopoverPopup side="bottom" align="end" sideOffset={8} viewportClassName="py-2">
+        <div className="flex items-center justify-between gap-4 px-1">
+          <span className="text-sm font-medium">Text-to-speech</span>
+          <Switch
+            checked={!ttsMuted}
+            onCheckedChange={() => toggleTtsMuted()}
+            aria-label="Toggle text-to-speech mute"
+          />
+        </div>
+        {enabledVoices.length > 0 && (
+          <div className="mt-2 flex flex-col border-t border-border pt-2">
+            {enabledVoices.map((voice) => (
+              <button
+                key={voice}
+                type="button"
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-md px-1 py-1.5 text-left text-sm",
+                  voice === activeVoice
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                )}
+                onClick={() =>
+                  updateSettings({ speech: { ...settings.speech, kokoroVoice: voice } })
+                }
+              >
+                <span className="flex size-3.5 shrink-0 items-center justify-center">
+                  {voice === activeVoice && <CheckIcon className="size-3" />}
+                </span>
+                {voice}
+              </button>
+            ))}
+          </div>
+        )}
+      </PopoverPopup>
+    </Popover>
   );
 }
 
@@ -2769,13 +2811,13 @@ const SidebarChromeHeader = memo(function SidebarChromeHeader({
     <SidebarHeader className="@container/sidebar-header drag-region h-[var(--workspace-topbar-height)] shrink-0 flex-row items-center px-3 py-0 md:px-0">
       <SidebarTrigger className="md:hidden" />
       <SidebarBrand />
-      <SidebarTtsMuteButton />
+      <SidebarVoiceDropdown />
     </SidebarHeader>
   ) : (
     <SidebarHeader className="@container/sidebar-header h-[var(--workspace-topbar-height)] shrink-0 flex-row items-center px-3 py-0 md:px-0">
       <SidebarTrigger className="md:hidden" />
       <SidebarBrand />
-      <SidebarTtsMuteButton />
+      <SidebarVoiceDropdown />
     </SidebarHeader>
   );
 });
