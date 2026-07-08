@@ -33,6 +33,39 @@ describe("armedPredictionKey", () => {
   it("does not arm while still running", () => {
     expect(armedPredictionKey({ ...base, phase: "running" })).toBeNull();
   });
+
+  it("regression: a thread-change render never registers a turn boundary, even when the outgoing thread was mid-run", () => {
+    // Bug 3 (thread-switch boundary leak): the user is viewing thread A,
+    // which is `running`. They switch to idle thread B (composer empty,
+    // `phase === "ready"`, B has a completed-but-never-fetched turn). Without
+    // a fix, prevPhaseRef still holds A's "running" from the prior render, so
+    // this render would see prevPhase="running" -> phase="ready" and treat it
+    // as a fresh boundary for B, arming (and then fetching) a prediction B
+    // never earned this render.
+    //
+    // The hook's fix feeds `effectivePrevPhase = args.phase` (the CURRENT
+    // thread's phase) as prevPhase on any thread-change render, so the
+    // boundary check always sees prevPhase === phase and is neutralized.
+    // Asserted here at the pure-function level since this repo has no
+    // renderHook harness to exercise the ref logic directly.
+    const onThreadChange = armedPredictionKey({
+      enabled: true,
+      phase: "ready",
+      prevPhase: "ready", // effectivePrevPhase on thread-change: args.phase, not A's stale "running"
+      key: "B:m1",
+    });
+    expect(onThreadChange).toBeNull();
+
+    // Contrast: a genuine same-thread boundary (no thread change, prevPhase
+    // really is the prior render's phase) still arms as before.
+    const genuineBoundary = armedPredictionKey({
+      enabled: true,
+      phase: "ready",
+      prevPhase: "running",
+      key: "B:m1",
+    });
+    expect(genuineBoundary).toBe("B:m1");
+  });
 });
 
 describe("shouldFetchPrediction", () => {

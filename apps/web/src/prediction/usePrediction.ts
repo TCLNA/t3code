@@ -41,7 +41,8 @@ export function usePrediction(args: {
     // shouldFetchPrediction case "does not fetch across a thread mismatch"
     // below is the closest pure-function proxy, exercising the gate this
     // reset exists to make redundant-but-safe.
-    if (prevThreadIdRef.current !== args.threadId) {
+    const threadChanged = prevThreadIdRef.current !== args.threadId;
+    if (threadChanged) {
       prevThreadIdRef.current = args.threadId;
       armedRef.current = null;
       cachedKeyRef.current = null;
@@ -50,10 +51,20 @@ export function usePrediction(args: {
 
     const key = nextPredictionKey(args.threadId, args.lastMessageId);
 
+    // On a thread-change render, `prevPhase` (prevPhaseRef, from the
+    // previously-viewed thread) and `args.phase` (the newly-current thread's
+    // phase) are unrelated: phase is per-active-thread, so a switch from a
+    // `running` thread onto an idle `ready` thread would otherwise look like
+    // a fresh running->ready turn boundary for the new thread and arm a
+    // spurious fetch. Feed the CURRENT phase as prevPhase on a thread-change
+    // render so the boundary check is trivially false (prevPhase === phase),
+    // neutralizing it instead of comparing across threads.
+    const effectivePrevPhase = threadChanged ? args.phase : prevPhase;
+
     const armed = armedPredictionKey({
       enabled: args.enabled,
       phase: args.phase,
-      prevPhase,
+      prevPhase: effectivePrevPhase,
       key,
     });
     if (armed !== null && args.threadId !== null) {
