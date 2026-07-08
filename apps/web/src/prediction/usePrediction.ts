@@ -18,9 +18,14 @@ export function usePrediction(args: {
   const prevPhaseRef = useRef<SessionPhase>(args.phase);
   // The turn currently eligible for a fetch, armed on a running->ready
   // transition and cleared only when a newer turn boundary supersedes it.
-  // Tracked alongside the thread it belongs to so a later fetch always
-  // targets the thread the turn actually happened on.
+  // Tracked alongside the thread it belongs to so a fetch is only ever
+  // considered while it still belongs to the CURRENT thread (see the
+  // thread-change reset below and the armedThreadId gate in
+  // shouldFetchPrediction).
   const armedRef = useRef<{ key: string; threadId: ThreadId } | null>(null);
+  // Tracks the thread this hook instance last saw, so a thread switch can be
+  // detected even though this hook instance isn't remounted per thread.
+  const prevThreadIdRef = useRef<ThreadId | null>(args.threadId);
   const runGetPrediction = useAtomCommand(serverEnvironment.getPrediction, "get prediction");
 
   const clear = useCallback(() => setPrediction(""), []);
@@ -28,6 +33,21 @@ export function usePrediction(args: {
   useEffect(() => {
     const prevPhase = prevPhaseRef.current;
     prevPhaseRef.current = args.phase;
+
+    // Invalidate stale arming/caching when the thread changes: a previous
+    // thread's armed-but-unfetched turn (or its cached key/ghost) must never
+    // carry over and leak into the newly-current thread. This ref-reset path
+    // has no direct unit test (this repo has no renderHook harness); the
+    // shouldFetchPrediction case "does not fetch across a thread mismatch"
+    // below is the closest pure-function proxy, exercising the gate this
+    // reset exists to make redundant-but-safe.
+    if (prevThreadIdRef.current !== args.threadId) {
+      prevThreadIdRef.current = args.threadId;
+      armedRef.current = null;
+      cachedKeyRef.current = null;
+      setPrediction("");
+    }
+
     const key = nextPredictionKey(args.threadId, args.lastMessageId);
 
     const armed = armedPredictionKey({
@@ -43,21 +63,29 @@ export function usePrediction(args: {
     if (
       !shouldFetchPrediction({
         enabled: args.enabled,
+        phase: args.phase,
         promptIsEmpty: args.promptIsEmpty,
         armedKey: armedRef.current?.key ?? null,
+        armedThreadId: armedRef.current?.threadId ?? null,
+        threadId: args.threadId,
         cachedKey: cachedKeyRef.current,
       }) ||
       armedRef.current === null
     ) {
       return;
     }
+    // The armedThreadId === threadId gate above guarantees armedRef.current
+    // .threadId equals args.threadId here, so pairing it with args
+    // .environmentId (rather than any stale value) always targets the
+    // CURRENT thread's environment.
     const { key: fetchKey, threadId } = armedRef.current;
+    const { environmentId } = args;
     cachedKeyRef.current = fetchKey;
     let cancelled = false;
     void (async () => {
       try {
         const result = await runGetPrediction({
-          environmentId: args.environmentId,
+          environmentId,
           input: { threadId },
         });
         if (!cancelled && result._tag === "Success" && result.value.prediction) {
