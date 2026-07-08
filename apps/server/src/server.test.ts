@@ -90,6 +90,7 @@ import { SpeechToText } from "./speech/SpeechToText.ts";
 import { TextToSpeech } from "./speech/TextToSpeech.ts";
 import { SpeechHumanize } from "./speech/SpeechHumanize.ts";
 import * as TerminalManager from "./terminal/Manager.ts";
+import * as TextGeneration from "./textGeneration/TextGeneration.ts";
 import * as PreviewManager from "./preview/Manager.ts";
 import * as PortScanner from "./preview/PortScanner.ts";
 import * as BrowserTraceCollector from "./observability/BrowserTraceCollector.ts";
@@ -575,6 +576,9 @@ const buildAppUnderTest = (options?: {
           }),
           Layer.mock(SpeechHumanize)({
             humanize: (sentence) => Effect.succeed(sentence),
+          }),
+          Layer.mock(TextGeneration.TextGeneration)({
+            generateNextMessagePrediction: () => Effect.succeed({ prediction: "" }),
           }),
         ),
       ),

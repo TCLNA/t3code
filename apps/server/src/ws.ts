@@ -81,6 +81,7 @@ import * as ServerLifecycleEvents from "./serverLifecycleEvents.ts";
 import * as ServerRuntimeStartup from "./serverRuntimeStartup.ts";
 import * as ServerSettings from "./serverSettings.ts";
 import * as TerminalManager from "./terminal/Manager.ts";
+import * as TextGeneration from "./textGeneration/TextGeneration.ts";
 import * as PreviewAutomationBroker from "./mcp/PreviewAutomationBroker.ts";
 import * as PreviewManager from "./preview/Manager.ts";
 import { issueAssetUrl } from "./assets/AssetAccess.ts";
@@ -291,6 +292,7 @@ const RPC_REQUIRED_SCOPE = new Map<string, AuthEnvironmentScope>([
   [WS_METHODS.serverRemoveKeybinding, AuthOrchestrationOperateScope],
   [WS_METHODS.serverGetSettings, AuthOrchestrationReadScope],
   [WS_METHODS.serverUpdateSettings, AuthOrchestrationOperateScope],
+  [WS_METHODS.serverGetPrediction, AuthOrchestrationReadScope],
   [WS_METHODS.serverDiscoverSourceControl, AuthOrchestrationReadScope],
   [WS_METHODS.serverGetTraceDiagnostics, AuthOrchestrationReadScope],
   [WS_METHODS.serverGetProcessDiagnostics, AuthOrchestrationReadScope],
@@ -412,6 +414,7 @@ const makeWsRpcLayer = (
       const config = yield* ServerConfig.ServerConfig;
       const lifecycleEvents = yield* ServerLifecycleEvents.ServerLifecycleEvents;
       const serverSettings = yield* ServerSettings.ServerSettingsService;
+      const textGeneration = yield* TextGeneration.TextGeneration;
       const startup = yield* ServerRuntimeStartup.ServerRuntimeStartup;
       const workspaceEntries = yield* WorkspaceEntries.WorkspaceEntries;
       const workspaceFileSystem = yield* WorkspaceFileSystem.WorkspaceFileSystem;
@@ -1293,6 +1296,38 @@ const makeWsRpcLayer = (
             serverSettings
               .updateSettings(patch)
               .pipe(Effect.map(ServerSettings.redactServerSettingsForClient)),
+            {
+              "rpc.aggregate": "server",
+            },
+          ),
+        [WS_METHODS.serverGetPrediction]: ({ threadId }) =>
+          observeRpcEffect(
+            WS_METHODS.serverGetPrediction,
+            Effect.gen(function* () {
+              const settings = yield* serverSettings.getSettings;
+              if (!settings.prediction.enabled) {
+                return { prediction: "" };
+              }
+              const thread = yield* projectionSnapshotQuery.getThreadDetailById(threadId);
+              if (Option.isNone(thread)) {
+                return { prediction: "" };
+              }
+              const messages = thread.value.messages.map((message) => ({
+                role: message.role,
+                text: message.text,
+              }));
+              if (messages.length === 0) {
+                return { prediction: "" };
+              }
+              const result = yield* textGeneration
+                .generateNextMessagePrediction({
+                  cwd: thread.value.worktreePath ?? config.cwd,
+                  messages,
+                  modelSelection: settings.prediction.model,
+                })
+                .pipe(Effect.orElseSucceed(() => ({ prediction: "" })));
+              return { prediction: result.prediction };
+            }).pipe(Effect.orElseSucceed(() => ({ prediction: "" }))),
             {
               "rpc.aggregate": "server",
             },
