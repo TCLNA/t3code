@@ -14,9 +14,10 @@ import {
 } from "./http.ts";
 import { fixPath } from "./os-jank.ts";
 import { websocketRpcRouteLayer } from "./ws.ts";
-import { sttRouteLayer, ttsRouteLayer } from "./speech/speechRoutes.ts";
+import { sttRouteLayer, ttsRouteLayer, humanizeRouteLayer } from "./speech/speechRoutes.ts";
 import * as SpeechToText from "./speech/SpeechToText.ts";
 import * as TextToSpeech from "./speech/TextToSpeech.ts";
+import * as SpeechHumanize from "./speech/SpeechHumanize.ts";
 import * as ExternalLauncher from "./process/externalLauncher.ts";
 import { layerConfig as SqlitePersistenceLayerLive } from "./persistence/Layers/Sqlite.ts";
 import * as ServerLifecycleEvents from "./serverLifecycleEvents.ts";
@@ -246,7 +247,7 @@ const PortScannerLayerLive = PortScanner.layer.pipe(Layer.provide(ProcessRunner.
 // internally; its remaining requirements (ServerSettingsService plus the
 // platform FileSystem/Path/ChildProcessSpawner) are satisfied where this layer
 // is merged into the runtime dependency graph below.
-const SpeechLayerLive = Layer.mergeAll(SpeechToText.layer, TextToSpeech.layer).pipe(
+const SpeechLayerLive = Layer.mergeAll(SpeechToText.layer, TextToSpeech.layer, SpeechHumanize.layer).pipe(
   Layer.provide(ProcessRunner.layer),
 );
 
@@ -372,6 +373,7 @@ export const makeRoutesLayer = Layer.mergeAll(
     websocketRpcRouteLayer,
     sttRouteLayer,
     ttsRouteLayer,
+    humanizeRouteLayer,
   ),
   McpHttpServer.layer.pipe(Layer.provide(McpSessionRegistry.layer)),
 ).pipe(Layer.provide(PreviewAutomationBroker.layer), Layer.provide(browserApiCorsLayer));

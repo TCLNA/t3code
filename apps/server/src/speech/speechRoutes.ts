@@ -11,7 +11,7 @@
  *
  * @module speechRoutes
  */
-import { AuthOrchestrationOperateScope, TextToSpeechRequest } from "@t3tools/contracts";
+import { AuthOrchestrationOperateScope, TextToSpeechRequest, SpeechHumanizeRequest } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
@@ -25,6 +25,7 @@ import {
 import { authenticateRawRouteWithScope } from "../http.ts";
 import { SpeechToText } from "./SpeechToText.ts";
 import { TextToSpeech } from "./TextToSpeech.ts";
+import { SpeechHumanize } from "./SpeechHumanize.ts";
 
 const STT_PATH = "/api/stt/transcribe";
 const TTS_PATH = "/api/tts/synthesize";
@@ -115,5 +116,28 @@ export const ttsRouteLayer = HttpRouter.add(
         ),
       ),
     );
+  }).pipe(Effect.catchTags(authErrorHandlers)),
+);
+
+const HUMANIZE_PATH = "/api/tts/humanize";
+
+const decodeSpeechHumanizeRequest = Schema.decodeUnknownEffect(SpeechHumanizeRequest);
+
+export const humanizeRouteLayer = HttpRouter.add(
+  "POST",
+  HUMANIZE_PATH,
+  Effect.gen(function* () {
+    yield* authenticateRawRouteWithScope(AuthOrchestrationOperateScope);
+    const request = yield* HttpServerRequest.HttpServerRequest;
+    const speechHumanize = yield* SpeechHumanize;
+
+    const json = yield* request.json.pipe(Effect.orElseSucceed(() => null));
+    const decoded = yield* decodeSpeechHumanizeRequest(json).pipe(Effect.option);
+    if (Option.isNone(decoded)) {
+      return HttpServerResponse.text("Invalid request body.", { status: 400 });
+    }
+
+    const humanized = yield* speechHumanize.humanize(decoded.value.sentence);
+    return HttpServerResponse.jsonUnsafe({ humanized }, { status: 200 });
   }).pipe(Effect.catchTags(authErrorHandlers)),
 );

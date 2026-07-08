@@ -88,6 +88,7 @@ import * as ServerRuntimeStartup from "./serverRuntimeStartup.ts";
 import * as ServerSettings from "./serverSettings.ts";
 import { SpeechToText } from "./speech/SpeechToText.ts";
 import { TextToSpeech } from "./speech/TextToSpeech.ts";
+import { SpeechHumanize } from "./speech/SpeechHumanize.ts";
 import * as TerminalManager from "./terminal/Manager.ts";
 import * as PreviewManager from "./preview/Manager.ts";
 import * as PortScanner from "./preview/PortScanner.ts";
@@ -571,6 +572,9 @@ const buildAppUnderTest = (options?: {
           }),
           Layer.mock(TextToSpeech)({
             synthesize: () => Effect.succeed({ wavBytes: new Uint8Array() }),
+          }),
+          Layer.mock(SpeechHumanize)({
+            humanize: (sentence) => Effect.succeed(sentence),
           }),
         ),
       ),
