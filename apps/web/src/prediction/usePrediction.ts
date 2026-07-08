@@ -3,7 +3,7 @@ import type { EnvironmentId, ThreadId } from "@t3tools/contracts";
 import { serverEnvironment } from "~/state/server";
 import { useAtomCommand } from "~/state/use-atom-command";
 import type { SessionPhase } from "../types.ts";
-import { nextPredictionKey, shouldFetchPrediction } from "./predictionCache.ts";
+import { armedPredictionKey, nextPredictionKey, shouldFetchPrediction } from "./predictionCache.ts";
 
 export function usePrediction(args: {
   enabled: boolean;
@@ -16,6 +16,11 @@ export function usePrediction(args: {
   const [prediction, setPrediction] = useState("");
   const cachedKeyRef = useRef<string | null>(null);
   const prevPhaseRef = useRef<SessionPhase>(args.phase);
+  // The turn currently eligible for a fetch, armed on a running->ready
+  // transition and cleared only when a newer turn boundary supersedes it.
+  // Tracked alongside the thread it belongs to so a later fetch always
+  // targets the thread the turn actually happened on.
+  const armedRef = useRef<{ key: string; threadId: ThreadId } | null>(null);
   const runGetPrediction = useAtomCommand(serverEnvironment.getPrediction, "get prediction");
 
   const clear = useCallback(() => setPrediction(""), []);
@@ -23,23 +28,31 @@ export function usePrediction(args: {
   useEffect(() => {
     const prevPhase = prevPhaseRef.current;
     prevPhaseRef.current = args.phase;
-    const threadId = args.threadId;
-    const key = nextPredictionKey(threadId, args.lastMessageId);
+    const key = nextPredictionKey(args.threadId, args.lastMessageId);
+
+    const armed = armedPredictionKey({
+      enabled: args.enabled,
+      phase: args.phase,
+      prevPhase,
+      key,
+    });
+    if (armed !== null && args.threadId !== null) {
+      armedRef.current = { key: armed, threadId: args.threadId };
+    }
+
     if (
       !shouldFetchPrediction({
         enabled: args.enabled,
-        phase: args.phase,
-        prevPhase,
         promptIsEmpty: args.promptIsEmpty,
-        key,
+        armedKey: armedRef.current?.key ?? null,
         cachedKey: cachedKeyRef.current,
       }) ||
-      key === null ||
-      threadId === null
+      armedRef.current === null
     ) {
       return;
     }
-    cachedKeyRef.current = key;
+    const { key: fetchKey, threadId } = armedRef.current;
+    cachedKeyRef.current = fetchKey;
     let cancelled = false;
     void (async () => {
       try {
