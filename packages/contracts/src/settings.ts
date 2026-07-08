@@ -633,6 +633,7 @@ export const ServerSettingsPatch = Schema.Struct({
       kokoroCommand: Schema.optionalKey(TrimmedString),
       kokoroModelPath: Schema.optionalKey(TrimmedString),
       kokoroVoice: Schema.optionalKey(TrimmedString),
+      kokoroEnabledVoices: Schema.optionalKey(Schema.Array(Schema.String)),
     }),
   ),
   providers: Schema.optionalKey(
