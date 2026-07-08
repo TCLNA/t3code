@@ -892,6 +892,8 @@ interface ComposerPromptEditorProps {
   ) => boolean;
   onPaste: React.ClipboardEventHandler<HTMLElement>;
   editorRef: React.RefObject<ComposerPromptEditorHandle | null>;
+  ghostText?: string;
+  onAcceptGhost?: () => void;
 }
 
 function ComposerCommandKeyPlugin(props: {
@@ -956,8 +958,15 @@ function ComposerCommandKeyPlugin(props: {
   return null;
 }
 
-function ComposerInlineTokenArrowPlugin() {
+function ComposerInlineTokenArrowPlugin(props: {
+  ghostText?: string;
+  onAcceptGhost?: () => void;
+}) {
   const [editor] = useLexicalComposerContext();
+  const ghostRef = useRef(props.ghostText ?? "");
+  const acceptRef = useRef(props.onAcceptGhost);
+  ghostRef.current = props.ghostText ?? "";
+  acceptRef.current = props.onAcceptGhost;
 
   useEffect(() => {
     const unregisterLeft = editor.registerCommand(
@@ -989,6 +998,17 @@ function ComposerInlineTokenArrowPlugin() {
     const unregisterRight = editor.registerCommand(
       KEY_ARROW_RIGHT_COMMAND,
       (event) => {
+        // Accept ghost text when the editor is empty and a suggestion exists.
+        let isEmpty = false;
+        editor.getEditorState().read(() => {
+          isEmpty = $getComposerRootLength() === 0;
+        });
+        if (isEmpty && ghostRef.current.length > 0 && acceptRef.current) {
+          event?.preventDefault();
+          event?.stopPropagation();
+          acceptRef.current();
+          return true;
+        }
         let nextOffset: number | null = null;
         editor.getEditorState().read(() => {
           const selection = $getSelection();
@@ -1396,6 +1416,8 @@ function ComposerPromptEditorInner({
   onCommandKeyDown,
   onPaste,
   editorRef,
+  ghostText,
+  onAcceptGhost,
 }: ComposerPromptEditorProps) {
   const [editor] = useLexicalComposerContext();
   const onChangeRef = useRef(onChange);
@@ -1622,7 +1644,7 @@ function ComposerPromptEditorInner({
           placeholder={
             terminalContexts.length > 0 ? null : (
               <div className="pointer-events-none absolute inset-0 text-[16px] leading-relaxed text-muted-foreground/35 sm:text-[14px]">
-                {placeholder}
+                {value.length === 0 && ghostText ? ghostText : placeholder}
               </div>
             )
           }
@@ -1631,7 +1653,10 @@ function ComposerPromptEditorInner({
         <OnChangePlugin onChange={handleEditorChange} />
         <ComposerCommandKeyPlugin {...(onCommandKeyDown ? { onCommandKeyDown } : {})} />
         <ComposerSurroundSelectionPlugin terminalContexts={terminalContexts} skills={skills} />
-        <ComposerInlineTokenArrowPlugin />
+        <ComposerInlineTokenArrowPlugin
+          {...(ghostText ? { ghostText } : {})}
+          {...(onAcceptGhost ? { onAcceptGhost } : {})}
+        />
         <ComposerInlineTokenSelectionNormalizePlugin />
         <ComposerInlineTokenBackspacePlugin />
         <HistoryPlugin />
@@ -1653,6 +1678,8 @@ export function ComposerPromptEditor({
   onCommandKeyDown,
   onPaste,
   editorRef,
+  ghostText,
+  onAcceptGhost,
 }: ComposerPromptEditorProps) {
   const initialValueRef = useRef(value);
   const initialTerminalContextsRef = useRef(terminalContexts);
@@ -1691,6 +1718,8 @@ export function ComposerPromptEditor({
         editorRef={editorRef}
         {...(onCommandKeyDown ? { onCommandKeyDown } : {})}
         {...(className ? { className } : {})}
+        {...(ghostText ? { ghostText } : {})}
+        {...(onAcceptGhost ? { onAcceptGhost } : {})}
       />
     </LexicalComposer>
   );
