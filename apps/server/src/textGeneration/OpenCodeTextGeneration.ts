@@ -611,10 +611,18 @@ export const makeOpenCodeTextGeneration = Effect.fn("makeOpenCodeTextGeneration"
       };
     });
 
+  const generateNextMessagePrediction: TextGeneration.TextGeneration["Service"]["generateNextMessagePrediction"] =
+    Effect.fn("OpenCodeTextGeneration.generateNextMessagePrediction")(function* (_input) {
+      // Prediction is only implemented for Claude and Codex. Returning an empty
+      // string suppresses the composer ghost text for this provider.
+      return { prediction: "" };
+    });
+
   return {
     generateCommitMessage,
     generatePrContent,
     generateBranchName,
     generateThreadTitle,
+    generateNextMessagePrediction,
   } satisfies TextGeneration.TextGeneration["Service"];
 });
