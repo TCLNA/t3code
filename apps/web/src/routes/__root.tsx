@@ -52,7 +52,8 @@ import {
   createKeybindingsUpdateToastController,
   type KeybindingsUpdateToastController,
 } from "../components/KeybindingsUpdateToast.logic";
-import { parseSimplifiedSearch } from "../components/simplified/useSimplifiedMode";
+import { SimplifiedLayout } from "../components/simplified/SimplifiedLayout";
+import { parseSimplifiedSearch, useSimplifiedMode } from "../components/simplified/useSimplifiedMode";
 
 export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
@@ -95,6 +96,7 @@ function RootRouteView() {
   const pathname = useLocation({ select: (location) => location.pathname });
   const { authGateState } = Route.useRouteContext();
   const primaryEnvironmentAuthenticated = authGateState.status === "authenticated";
+  const simplified = useSimplifiedMode();
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -123,7 +125,13 @@ function RootRouteView() {
     );
   }
 
-  const appShell = (
+  const appShell = simplified ? (
+    <CommandPalette>
+      <SimplifiedLayout>
+        <Outlet />
+      </SimplifiedLayout>
+    </CommandPalette>
+  ) : (
     <CommandPalette>
       <AppSidebarLayout>
         <Outlet />
