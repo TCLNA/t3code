@@ -3,6 +3,7 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   buildBranchNamePrompt,
   buildCommitMessagePrompt,
+  buildPredictionPrompt,
   buildPrContentPrompt,
   buildThreadTitlePrompt,
 } from "./TextGenerationPrompts.ts";
@@ -201,5 +202,32 @@ describe("normalizeCliError", () => {
 
     expect(result.detail).toBe("Failed to generate a commit message");
     expect(result.message).not.toContain("secret-token");
+  });
+});
+
+describe("buildPredictionPrompt", () => {
+  it("includes recent messages and an empty-when-unclear instruction", () => {
+    const result = buildPredictionPrompt({
+      messages: [
+        { role: "user", text: "add a login form" },
+        { role: "assistant", text: "Done. Added LoginForm.tsx." },
+      ],
+    });
+
+    expect(result.prompt).toContain("add a login form");
+    expect(result.prompt).toContain("Done. Added LoginForm.tsx.");
+    expect(result.prompt.toLowerCase()).toContain("empty string");
+    expect(result.prompt).toContain("Return a JSON object with key: prediction.");
+  });
+
+  it("caps history to the last 10 messages", () => {
+    const messages = Array.from({ length: 14 }, (_, i) => ({
+      role: "user" as const,
+      text: `message-${i}`,
+    }));
+    const result = buildPredictionPrompt({ messages });
+
+    expect(result.prompt).not.toContain("message-3");
+    expect(result.prompt).toContain("message-13");
   });
 });

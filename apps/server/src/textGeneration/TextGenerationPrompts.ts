@@ -216,3 +216,45 @@ export function buildThreadTitlePrompt(input: ThreadTitlePromptInput) {
 
   return { prompt, outputSchema };
 }
+
+// ---------------------------------------------------------------------------
+// Next-message prediction
+// ---------------------------------------------------------------------------
+
+export interface PredictionMessage {
+  role: "user" | "assistant" | "system";
+  text: string;
+}
+
+export interface PredictionPromptInput {
+  messages: ReadonlyArray<PredictionMessage>;
+}
+
+const PREDICTION_MAX_MESSAGES = 10;
+const PREDICTION_MAX_MESSAGE_CHARS = 2_000;
+
+export function buildPredictionPrompt(input: PredictionPromptInput) {
+  const recent = input.messages.slice(-PREDICTION_MAX_MESSAGES);
+  const transcript = recent
+    .map((message) => `${message.role}: ${limitSection(message.text, PREDICTION_MAX_MESSAGE_CHARS)}`)
+    .join("\n\n");
+
+  const prompt = [
+    "You predict the user's most likely next message in a coding conversation.",
+    "Return a JSON object with key: prediction.",
+    "Rules:",
+    "- prediction is the single next message the user would most plausibly type.",
+    "- Write it as the user, in first person, with no preamble or quotes.",
+    "- Keep it natural and concise.",
+    "- If the next message is genuinely unclear, return an empty string.",
+    "",
+    "Conversation so far:",
+    transcript,
+  ].join("\n");
+
+  const outputSchema = Schema.Struct({
+    prediction: Schema.String,
+  });
+
+  return { prompt, outputSchema };
+}
