@@ -712,6 +712,18 @@ export function GeneralSettingsPanel() {
         <SettingsRow
           title="Predict next message"
           description="Suggest your likely next message as ghost text after each turn (press → to accept)."
+          resetAction={
+            !Equal.equals(settings.prediction, DEFAULT_UNIFIED_SETTINGS.prediction) ? (
+              <SettingResetButton
+                label="predict next message"
+                onClick={() =>
+                  updateSettings({
+                    prediction: DEFAULT_UNIFIED_SETTINGS.prediction,
+                  })
+                }
+              />
+            ) : null
+          }
           control={
             <Switch
               checked={settings.prediction.enabled}
