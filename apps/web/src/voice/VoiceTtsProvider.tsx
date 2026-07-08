@@ -7,6 +7,7 @@ import { useThreadMessages } from "~/state/entities";
 import { primaryServerSettingsAtom } from "~/state/server";
 import { resolveThreadRouteTarget } from "~/threadRoutes";
 
+import { humanizeForSpeech } from "./humanizeSpeech";
 import { TtsPlaybackController } from "./ttsPlayback";
 import { useVoiceStore } from "./useVoiceStore";
 
@@ -85,13 +86,22 @@ export function VoiceTtsProvider({ children }: { children: React.ReactNode }) {
     const spoken = markdownToSpeakable(assistant.text);
     const { units, remainder } = segmentSpeakable(spoken);
     for (let i = tracker.spokenCount; i < units.length; i += 1) {
-      playback.enqueue(playback.nextIndex(), units[i]!);
+      const unit = units[i]!;
+      const idx = playback.nextIndex();
+      humanizeForSpeech(unit).then((humanized) => {
+        playback.enqueue(idx, humanized);
+      });
     }
     tracker.spokenCount = units.length;
 
     if (!assistant.streaming) {
       const tail = remainder.trim();
-      if (tail.length > 0) playback.enqueue(playback.nextIndex(), tail);
+      if (tail.length > 0) {
+        const idx = playback.nextIndex();
+        humanizeForSpeech(tail).then((humanized) => {
+          playback.enqueue(idx, humanized);
+        });
+      }
       tracker.done = true;
     }
   }, [messages, ttsMuted]);
@@ -116,7 +126,12 @@ export function VoiceTtsProvider({ children }: { children: React.ReactNode }) {
         if (tail.length > 0) parts.push(tail);
         if (parts.length === 0) return;
         playback.stop();
-        for (const part of parts) playback.enqueue(playback.nextIndex(), part);
+        for (const part of parts) {
+          const idx = playback.nextIndex();
+          humanizeForSpeech(part).then((humanized) => {
+            playback.enqueue(idx, humanized);
+          });
+        }
       },
       stop: () => playbackRef.current?.stop(),
     }),
