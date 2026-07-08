@@ -710,6 +710,22 @@ export function GeneralSettingsPanel() {
         />
 
         <SettingsRow
+          title="Predict next message"
+          description="Suggest your likely next message as ghost text after each turn (press → to accept)."
+          control={
+            <Switch
+              checked={settings.prediction.enabled}
+              onCheckedChange={(checked) =>
+                updateSettings({
+                  prediction: { ...settings.prediction, enabled: Boolean(checked) },
+                })
+              }
+              aria-label="Predict next message"
+            />
+          }
+        />
+
+        <SettingsRow
           title="Provider update checks"
           description="Check installed provider CLIs for newer available versions."
           resetAction={
