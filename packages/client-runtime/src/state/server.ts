@@ -186,6 +186,10 @@ export function createServerEnvironmentAtoms<R, E>(
       scheduler: configScheduler,
       concurrency: configConcurrency,
     }),
+    getPrediction: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:server:get-prediction",
+      tag: WS_METHODS.serverGetPrediction,
+    }),
     signalProcess: createEnvironmentRpcCommand(runtime, {
       label: "environment-data:server:signal-process",
       tag: WS_METHODS.serverSignalProcess,
