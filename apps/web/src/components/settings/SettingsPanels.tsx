@@ -5,6 +5,8 @@ import { useAtomValue } from "@effect/atom-react";
 import {
   defaultInstanceIdForDriver,
   type DesktopUpdateChannel,
+  DEFAULT_KOKORO_VOICE,
+  KOKORO_VOICES,
   PROVIDER_DISPLAY_NAMES,
   ProviderDriverKind,
   type ProviderInstanceConfig,
@@ -60,6 +62,7 @@ import { useProjects } from "../../state/entities";
 import { useArchivedThreadSnapshots } from "../../lib/archivedThreadsState";
 import { formatRelativeTime, formatRelativeTimeLabel } from "../../timestampFormat";
 import { Button } from "../ui/button";
+import { Checkbox } from "../ui/checkbox";
 import { DraftInput } from "../ui/draft-input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import { Switch } from "../ui/switch";
@@ -971,6 +974,57 @@ export function GeneralSettingsPanel() {
           }
         />
       </SettingsSection>
+
+      {settings.speech.ttsEnabled && (
+        <SettingsSection title="Voice">
+          <div className="px-4 py-3.5 sm:px-5">
+            <p className="mb-3 text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+              Available voices
+            </p>
+            <div className="flex flex-col gap-2">
+              {KOKORO_VOICES.map((voice) => {
+                const enabledVoices =
+                  settings.speech.kokoroEnabledVoices ?? [...KOKORO_VOICES];
+                const isChecked = enabledVoices.includes(voice);
+                const isLastEnabled = isChecked && enabledVoices.length === 1;
+                return (
+                  <label
+                    key={voice}
+                    className="flex cursor-pointer items-center gap-2.5 text-sm text-foreground"
+                  >
+                    <Checkbox
+                      checked={isChecked}
+                      disabled={isLastEnabled}
+                      onCheckedChange={(checked) => {
+                        const current =
+                          settings.speech.kokoroEnabledVoices ?? [...KOKORO_VOICES];
+                        const next =
+                          checked === true
+                            ? [...current, voice]
+                            : current.filter((v) => v !== voice);
+                        const speechPatch: {
+                          kokoroEnabledVoices: string[];
+                          kokoroVoice?: string;
+                        } = { kokoroEnabledVoices: next };
+                        if (
+                          checked !== true &&
+                          settings.speech.kokoroVoice === voice
+                        ) {
+                          speechPatch.kokoroVoice = next[0] ?? DEFAULT_KOKORO_VOICE;
+                        }
+                        updateSettings({
+                          speech: { ...settings.speech, ...speechPatch },
+                        });
+                      }}
+                    />
+                    {voice}
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        </SettingsSection>
+      )}
     </SettingsPageContainer>
   );
 }
