@@ -58,12 +58,12 @@ function DraftChatThreadRouteView() {
     void navigate({ to: "/", replace: true });
   }, [canonicalThreadRef, draftSession, navigate]);
 
-  if (simplified) {
-    return canonicalThreadRef ? (
-      <SimplifiedThreadScreen threadRef={canonicalThreadRef} />
-    ) : (
-      <SessionsHomeScreen />
-    );
+  if (simplified && canonicalThreadRef) {
+    return <SimplifiedThreadScreen threadRef={canonicalThreadRef} />;
+  }
+
+  if (simplified && !draftSession) {
+    return <SessionsHomeScreen />;
   }
 
   if (canonicalThreadRef) {

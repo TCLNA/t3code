@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { FolderIcon, ListIcon, MicIcon, SettingsIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 
+import { useHandleNewThread } from "~/hooks/useHandleNewThread";
 import { useThreadShells } from "~/state/entities";
 import { useSimplifiedNavigate } from "./simplifiedNavigation";
 import {
@@ -34,6 +35,7 @@ function statusLineFor(thread: {
 export default function SessionsHomeScreen() {
   const threads = useThreadShells();
   const navigate = useSimplifiedNavigate();
+  const { defaultProjectRef, handleNewThread } = useHandleNewThread();
   const [tab, setTab] = useState<"sessions" | "projects">("sessions");
 
   const grouped = useMemo(
@@ -125,15 +127,19 @@ export default function SessionsHomeScreen() {
       </div>
 
       <div className="px-4 pb-3">
-        <Link
-          to="/"
-          className="flex w-full items-center gap-3 rounded-full bg-primary px-4 py-3 text-primary-foreground"
+        <button
+          type="button"
+          disabled={!defaultProjectRef}
+          onClick={() => {
+            if (defaultProjectRef) void handleNewThread(defaultProjectRef);
+          }}
+          className="flex w-full items-center gap-3 rounded-full bg-primary px-4 py-3 text-primary-foreground disabled:opacity-50"
         >
           <span className="flex size-8 items-center justify-center rounded-full bg-primary-foreground/20">
             <MicIcon className="size-4" />
           </span>
           <span className="text-sm font-semibold">Start new session</span>
-        </Link>
+        </button>
       </div>
 
       <SimplifiedTabBar
