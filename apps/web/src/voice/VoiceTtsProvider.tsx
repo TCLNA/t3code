@@ -37,6 +37,7 @@ export function VoiceTtsProvider({ children }: { children: React.ReactNode }) {
   const messages = useThreadMessages(threadRef);
 
   const playbackRef = useRef<TtsPlaybackController | null>(null);
+  const stopEpochRef = useRef(0);
   const speechRef = useRef(speech);
   speechRef.current = speech;
 
@@ -88,7 +89,9 @@ export function VoiceTtsProvider({ children }: { children: React.ReactNode }) {
     for (let i = tracker.spokenCount; i < units.length; i += 1) {
       const unit = units[i]!;
       const idx = playback.nextIndex();
+      const epoch = stopEpochRef.current;
       humanizeForSpeech(unit).then((humanized) => {
+        if (stopEpochRef.current !== epoch) return;
         playback.enqueue(idx, humanized);
       });
     }
@@ -98,7 +101,9 @@ export function VoiceTtsProvider({ children }: { children: React.ReactNode }) {
       const tail = remainder.trim();
       if (tail.length > 0) {
         const idx = playback.nextIndex();
+        const epoch = stopEpochRef.current;
         humanizeForSpeech(tail).then((humanized) => {
+          if (stopEpochRef.current !== epoch) return;
           playback.enqueue(idx, humanized);
         });
       }
@@ -108,7 +113,10 @@ export function VoiceTtsProvider({ children }: { children: React.ReactNode }) {
 
   // Muting stops any in-flight playback.
   useEffect(() => {
-    if (ttsMuted) playbackRef.current?.stop();
+    if (ttsMuted) {
+      stopEpochRef.current += 1;
+      playbackRef.current?.stop();
+    }
   }, [ttsMuted]);
 
   const value = useMemo<VoiceTtsValue>(
@@ -126,9 +134,12 @@ export function VoiceTtsProvider({ children }: { children: React.ReactNode }) {
         if (tail.length > 0) parts.push(tail);
         if (parts.length === 0) return;
         playback.stop();
+        stopEpochRef.current += 1;
+        const speakEpoch = stopEpochRef.current;
         for (const part of parts) {
           const idx = playback.nextIndex();
           humanizeForSpeech(part).then((humanized) => {
+            if (stopEpochRef.current !== speakEpoch) return;
             playback.enqueue(idx, humanized);
           });
         }

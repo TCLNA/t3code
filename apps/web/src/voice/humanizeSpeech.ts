@@ -9,7 +9,7 @@ import { voiceFetch } from "./voiceHttp";
  */
 export async function humanizeForSpeech(sentence: string): Promise<string> {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 3_000);
+  const timer = setTimeout(() => controller.abort(), 4_000);
   try {
     const response = await voiceFetch("/api/tts/humanize", {
       method: "POST",
