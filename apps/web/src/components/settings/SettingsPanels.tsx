@@ -90,6 +90,7 @@ import {
   useRelativeTimeTick,
 } from "./settingsLayout";
 import { ProjectFavicon } from "../ProjectFavicon";
+import { useSimplifiedNavigate } from "../simplified/simplifiedNavigation";
 import { useAtomCommand } from "../../state/use-atom-command";
 
 const THEME_OPTIONS = [
@@ -483,6 +484,7 @@ export function GeneralSettingsPanel() {
   const { theme, setTheme } = useTheme();
   const settings = usePrimarySettings();
   const updateSettings = useUpdatePrimarySettings();
+  const simplifiedNavigate = useSimplifiedNavigate();
   const observability = useAtomValue(primaryServerObservabilityAtom);
   const serverProviders = useAtomValue(primaryServerProvidersAtom);
   const diagnosticsDescription = formatDiagnosticsDescription({
@@ -614,6 +616,50 @@ export function GeneralSettingsPanel() {
               checked={settings.wordWrap}
               onCheckedChange={(checked) => updateSettings({ wordWrap: Boolean(checked) })}
               aria-label="Wrap code, tables, diffs, and file previews by default"
+            />
+          }
+        />
+
+        <SettingsRow
+          title="Simplified mobile view"
+          description="Replace the app with a compact, voice-first mobile layout. Adds ?simplified=true to the URL so it persists and can be shared."
+          resetAction={
+            settings.simplifiedMobileView !== DEFAULT_UNIFIED_SETTINGS.simplifiedMobileView ? (
+              <SettingResetButton
+                label="simplified mobile view"
+                onClick={() => {
+                  updateSettings({
+                    simplifiedMobileView: DEFAULT_UNIFIED_SETTINGS.simplifiedMobileView,
+                  });
+                  simplifiedNavigate({
+                    to: ".",
+                    search: (prev) => {
+                      const { simplified: _simplified, ...rest } = prev;
+                      return rest;
+                    },
+                  });
+                }}
+              />
+            ) : null
+          }
+          control={
+            <Switch
+              checked={settings.simplifiedMobileView}
+              onCheckedChange={(checked) => {
+                const next = Boolean(checked);
+                updateSettings({ simplifiedMobileView: next });
+                simplifiedNavigate({
+                  to: ".",
+                  search: (prev) => {
+                    if (next) {
+                      return { ...prev, simplified: true };
+                    }
+                    const { simplified: _simplified, ...rest } = prev;
+                    return rest;
+                  },
+                });
+              }}
+              aria-label="Enable simplified mobile view"
             />
           }
         />
