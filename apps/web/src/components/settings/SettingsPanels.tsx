@@ -633,10 +633,7 @@ export function GeneralSettingsPanel() {
                   });
                   simplifiedNavigate({
                     to: ".",
-                    search: (prev) => {
-                      const { simplified: _simplified, ...rest } = prev;
-                      return rest;
-                    },
+                    search: (prev) => ({ ...prev, simplified: undefined }),
                   });
                 }}
               />
@@ -650,13 +647,8 @@ export function GeneralSettingsPanel() {
                 updateSettings({ simplifiedMobileView: next });
                 simplifiedNavigate({
                   to: ".",
-                  search: (prev) => {
-                    if (next) {
-                      return { ...prev, simplified: true };
-                    }
-                    const { simplified: _simplified, ...rest } = prev;
-                    return rest;
-                  },
+                  search: (prev) =>
+                    next ? { ...prev, simplified: true } : { ...prev, simplified: undefined },
                 });
               }}
               aria-label="Enable simplified mobile view"

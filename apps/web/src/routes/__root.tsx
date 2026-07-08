@@ -83,7 +83,7 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [{ name: "title", content: APP_DISPLAY_NAME }],
   }),
-  validateSearch: (search: Record<string, unknown>): { simplified?: boolean } => {
+  validateSearch: (search: Record<string, unknown>): { simplified?: boolean | undefined } => {
     const simplified = parseSimplifiedSearch(search.simplified);
     return simplified === undefined ? {} : { simplified };
   },
