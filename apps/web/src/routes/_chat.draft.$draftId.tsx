@@ -2,6 +2,9 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import ChatView from "../components/ChatView";
 import { threadHasStarted } from "../components/ChatView.logic";
+import SessionsHomeScreen from "../components/simplified/SessionsHomeScreen";
+import SimplifiedThreadScreen from "../components/simplified/SimplifiedThreadScreen";
+import { useSimplifiedMode } from "../components/simplified/useSimplifiedMode";
 import {
   DraftId,
   markPromotedDraftThreadByRef,
@@ -28,6 +31,7 @@ function DraftChatThreadRouteView() {
   const serverThread = useThread(serverThreadRef);
   const serverThreadStarted = threadHasStarted(serverThread);
   const canonicalThreadRef = serverThreadStarted ? serverThreadRef : null;
+  const simplified = useSimplifiedMode();
 
   useEffect(() => {
     if (!inferredThreadRef || draftSession?.promotedTo) {
@@ -53,6 +57,14 @@ function DraftChatThreadRouteView() {
     }
     void navigate({ to: "/", replace: true });
   }, [canonicalThreadRef, draftSession, navigate]);
+
+  if (simplified) {
+    return canonicalThreadRef ? (
+      <SimplifiedThreadScreen threadRef={canonicalThreadRef} />
+    ) : (
+      <SessionsHomeScreen />
+    );
+  }
 
   if (canonicalThreadRef) {
     return (
