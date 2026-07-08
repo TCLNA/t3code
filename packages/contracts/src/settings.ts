@@ -362,6 +362,24 @@ export const ObservabilitySettings = Schema.Struct({
 });
 export type ObservabilitySettings = typeof ObservabilitySettings.Type;
 
+/**
+ * LLM next-message prediction. When enabled, the server guesses the user's
+ * likely next message after each completed turn so the composer can offer it
+ * as ghost text. OFF by default because each prediction costs a model call.
+ */
+export const PredictionSettings = Schema.Struct({
+  enabled: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
+  model: ModelSelection.pipe(
+    Schema.withDecodingDefault(
+      Effect.succeed({
+        instanceId: ProviderInstanceId.make("codex"),
+        model: DEFAULT_GIT_TEXT_GENERATION_MODEL,
+      }),
+    ),
+  ),
+});
+export type PredictionSettings = typeof PredictionSettings.Type;
+
 // ── Local voice (speech-to-text + text-to-speech) ──────────────
 
 export const DEFAULT_KOKORO_VOICE = "af_heart";
@@ -517,6 +535,7 @@ export const ServerSettings = Schema.Struct({
   ),
   observability: ObservabilitySettings.pipe(Schema.withDecodingDefault(Effect.succeed({}))),
   speech: SpeechSettings.pipe(Schema.withDecodingDefault(Effect.succeed({}))),
+  prediction: PredictionSettings.pipe(Schema.withDecodingDefault(Effect.succeed({}))),
 });
 export type ServerSettings = typeof ServerSettings.Type;
 
@@ -634,6 +653,12 @@ export const ServerSettingsPatch = Schema.Struct({
       kokoroModelPath: Schema.optionalKey(TrimmedString),
       kokoroVoice: Schema.optionalKey(TrimmedString),
       kokoroEnabledVoices: Schema.optionalKey(Schema.Array(Schema.String)),
+    }),
+  ),
+  prediction: Schema.optionalKey(
+    Schema.Struct({
+      enabled: Schema.optionalKey(Schema.Boolean),
+      model: Schema.optionalKey(ModelSelectionPatch),
     }),
   ),
   providers: Schema.optionalKey(
