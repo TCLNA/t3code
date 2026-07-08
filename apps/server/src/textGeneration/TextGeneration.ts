@@ -67,6 +67,17 @@ export interface ThreadTitleGenerationResult {
   title: string;
 }
 
+export interface NextMessagePredictionInput {
+  cwd: string;
+  messages: ReadonlyArray<{ role: "user" | "assistant" | "system"; text: string }>;
+  /** What model and provider to use for generation. */
+  modelSelection: ModelSelection;
+}
+
+export interface NextMessagePredictionResult {
+  prediction: string;
+}
+
 export interface TextGenerationService {
   generateCommitMessage(
     input: CommitMessageGenerationInput,
@@ -74,6 +85,9 @@ export interface TextGenerationService {
   generatePrContent(input: PrContentGenerationInput): Promise<PrContentGenerationResult>;
   generateBranchName(input: BranchNameGenerationInput): Promise<BranchNameGenerationResult>;
   generateThreadTitle(input: ThreadTitleGenerationInput): Promise<ThreadTitleGenerationResult>;
+  generateNextMessagePrediction(
+    input: NextMessagePredictionInput,
+  ): Promise<NextMessagePredictionResult>;
 }
 
 /**
@@ -109,6 +123,13 @@ export class TextGeneration extends Context.Service<
     readonly generateThreadTitle: (
       input: ThreadTitleGenerationInput,
     ) => Effect.Effect<ThreadTitleGenerationResult, TextGenerationError>;
+
+    /**
+     * Predict the user's likely next message from recent conversation context.
+     */
+    readonly generateNextMessagePrediction: (
+      input: NextMessagePredictionInput,
+    ) => Effect.Effect<NextMessagePredictionResult, TextGenerationError>;
   }
 >()("t3/textGeneration/TextGeneration") {}
 
@@ -119,7 +140,8 @@ type TextGenerationOp =
   | "generateCommitMessage"
   | "generatePrContent"
   | "generateBranchName"
-  | "generateThreadTitle";
+  | "generateThreadTitle"
+  | "generateNextMessagePrediction";
 
 const resolveInstance = (
   registry: ProviderInstanceRegistry.ProviderInstanceRegistry["Service"],
@@ -158,6 +180,14 @@ export const makeTextGenerationFromRegistry = (
     generateThreadTitle: (input) =>
       resolveInstance(registry, "generateThreadTitle", input.modelSelection.instanceId).pipe(
         Effect.flatMap((textGeneration) => textGeneration.generateThreadTitle(input)),
+      ),
+    generateNextMessagePrediction: (input) =>
+      resolveInstance(
+        registry,
+        "generateNextMessagePrediction",
+        input.modelSelection.instanceId,
+      ).pipe(
+        Effect.flatMap((textGeneration) => textGeneration.generateNextMessagePrediction(input)),
       ),
   });
 

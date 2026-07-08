@@ -342,4 +342,29 @@ it.layer(ClaudeTextGenerationTestLayer)("ClaudeTextGeneration", (it) => {
         }),
     ),
   );
+
+  it.effect("generateNextMessagePrediction returns the predicted message", () =>
+    withFakeClaudeEnv(
+      {
+        output: JSON.stringify({
+          structured_output: {
+            prediction: "run the tests",
+          },
+        }),
+      },
+      (textGeneration) =>
+        Effect.gen(function* () {
+          const generated = yield* textGeneration.generateNextMessagePrediction({
+            cwd: process.cwd(),
+            messages: [{ role: "assistant", text: "I added the feature." }],
+            modelSelection: {
+              instanceId: ProviderInstanceId.make("claudeAgent"),
+              model: "claude-haiku-4-5",
+            },
+          });
+
+          expect(generated.prediction).toBe("run the tests");
+        }),
+    ),
+  );
 });

@@ -22,6 +22,7 @@ import * as TextGeneration from "./TextGeneration.ts";
 import {
   buildBranchNamePrompt,
   buildCommitMessagePrompt,
+  buildPredictionPrompt,
   buildPrContentPrompt,
   buildThreadTitlePrompt,
 } from "./TextGenerationPrompts.ts";
@@ -85,7 +86,8 @@ export const makeClaudeTextGeneration = Effect.fn("makeClaudeTextGeneration")(fu
       | "generateCommitMessage"
       | "generatePrContent"
       | "generateBranchName"
-      | "generateThreadTitle",
+      | "generateThreadTitle"
+      | "generateNextMessagePrediction",
     value: unknown,
     detail: string,
   ): Effect.Effect<string, TextGenerationError> =>
@@ -115,7 +117,8 @@ export const makeClaudeTextGeneration = Effect.fn("makeClaudeTextGeneration")(fu
       | "generateCommitMessage"
       | "generatePrContent"
       | "generateBranchName"
-      | "generateThreadTitle";
+      | "generateThreadTitle"
+      | "generateNextMessagePrediction";
     cwd: string;
     prompt: string;
     outputSchemaJson: S;
@@ -355,10 +358,26 @@ export const makeClaudeTextGeneration = Effect.fn("makeClaudeTextGeneration")(fu
       };
     });
 
+  const generateNextMessagePrediction: TextGeneration.TextGeneration["Service"]["generateNextMessagePrediction"] =
+    Effect.fn("ClaudeTextGeneration.generateNextMessagePrediction")(function* (input) {
+      const { prompt, outputSchema } = buildPredictionPrompt({ messages: input.messages });
+
+      const generated = yield* runClaudeJson({
+        operation: "generateNextMessagePrediction",
+        cwd: input.cwd,
+        prompt,
+        outputSchemaJson: outputSchema,
+        modelSelection: input.modelSelection,
+      });
+
+      return { prediction: generated.prediction.trim() };
+    });
+
   return {
     generateCommitMessage,
     generatePrContent,
     generateBranchName,
     generateThreadTitle,
+    generateNextMessagePrediction,
   } satisfies TextGeneration.TextGeneration["Service"];
 });
