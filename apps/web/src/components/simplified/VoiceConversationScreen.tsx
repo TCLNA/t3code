@@ -9,9 +9,7 @@ export function VoiceConversationScreen({ threadRef }: { threadRef: ScopedThread
   const recording = useVoiceStore((s) => s.recording);
   const toggleRecording = useVoiceStore((s) => s.toggleRecording);
 
-  const latestAssistant = [...messages]
-    .reverse()
-    .find((m) => m.role === "assistant");
+  const latestAssistant = messages.findLast((m) => m.role === "assistant");
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
