@@ -109,6 +109,7 @@ import { dictationInsertText } from "../../voice/dictationInsert";
 import { useVoiceDictation } from "../../voice/useVoiceDictation";
 import { useVoiceStore } from "../../voice/useVoiceStore";
 import { useVoiceTts } from "../../voice/VoiceTtsProvider";
+import { usePrediction } from "../../prediction/usePrediction";
 import {
   applyProviderInstanceSettings,
   deriveProviderInstanceEntries,
@@ -894,6 +895,19 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   const [isComposerFocused, setIsComposerFocused] = useState(false);
   const isMobileViewport = useMediaQuery("max-sm");
   const isComposerCollapsedMobile = isMobileViewport && !isComposerFocused;
+
+  // ------------------------------------------------------------------
+  // Next-message prediction
+  // ------------------------------------------------------------------
+  const lastMessageId = activeThread?.messages?.at(-1)?.id ?? null;
+  const { prediction, clear: clearPrediction } = usePrediction({
+    enabled: settings.prediction.enabled,
+    environmentId,
+    threadId: activeThreadId,
+    lastMessageId,
+    phase,
+    promptIsEmpty: prompt.length === 0,
+  });
 
   const voiceTts = useVoiceTts();
   useVoiceDictation({
@@ -1779,6 +1793,17 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
   };
 
   // ------------------------------------------------------------------
+  // Callbacks: prediction
+  // ------------------------------------------------------------------
+  const onAcceptGhostPrediction = useCallback(() => {
+    if (!prediction) return;
+    setPrompt(prediction);
+    clearPrediction();
+    // Move the caret to the end of the freshly-filled prompt.
+    requestAnimationFrame(() => composerRef.current?.focusAtEnd());
+  }, [prediction, setPrompt, clearPrediction, composerRef]);
+
+  // ------------------------------------------------------------------
   // Callbacks: images
   // ------------------------------------------------------------------
   const addComposerImages = (files: File[]) => {
@@ -2436,6 +2461,9 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
                 onRemoveTerminalContext={removeComposerTerminalContextFromDraft}
                 onChange={onPromptChange}
                 onCommandKeyDown={onComposerCommandKey}
+                {...(!isComposerApprovalState && !activePendingProgress && !showPlanFollowUpPrompt
+                  ? { ghostText: prediction, onAcceptGhost: onAcceptGhostPrediction }
+                  : {})}
                 onPaste={onComposerPaste}
                 placeholder={
                   isComposerApprovalState
