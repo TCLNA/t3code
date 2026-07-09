@@ -227,11 +227,11 @@ and consciously deferred (finding #1 was fixed, the rest logged here):
 - **"Done today" time filter (Minor #4):** `groupSessionsByStatus` buckets all
   non-running/non-needs-you threads as "Done" regardless of `updatedAt`
   (`_nowMs` is currently unused). Filter to today and relabel.
-- **Settings/onboarding edges (Minor #5):** the 2A settings gear opens
-  `/settings/general` inside the bare shell with no back-affordance to 2A; and
-  `_chat.index`'s simplified branch runs before the hosted-static onboarding
-  check, so a zero-environment hosted-static user sees "No sessions yet" instead
-  of onboarding.
+- **Onboarding edge (Minor #5, partial):** `_chat.index`'s simplified branch
+  runs before the hosted-static onboarding check, so a zero-environment
+  hosted-static user sees "No sessions yet" instead of onboarding. (The other
+  half — no back-affordance from `/settings` in the bare shell — was FIXED: the
+  settings header now shows a back button when simplified mode is active.)
 
 Note: the "Start new session" CTA (finding #1) WAS fixed — it now calls the real
 `useHandleNewThread` flow and unstarted drafts render the working `ChatView`
