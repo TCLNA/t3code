@@ -1,4 +1,4 @@
-import { RotateCcwIcon } from "lucide-react";
+import { ChevronLeftIcon, RotateCcwIcon } from "lucide-react";
 import {
   Outlet,
   createFileRoute,
@@ -10,6 +10,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 
 import { useSettingsRestore } from "../components/settings/SettingsPanels";
+import { useSimplifiedMode } from "../components/simplified/useSimplifiedMode";
 import { Button } from "../components/ui/button";
 import { SidebarInset } from "../components/ui/sidebar";
 import { isElectron } from "../env";
@@ -36,6 +37,7 @@ function SettingsContentLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const canGoBack = useCanGoBack();
+  const simplified = useSimplifiedMode();
   const [restoreSignal, setRestoreSignal] = useState(0);
   const showRestoreDefaults = location.pathname === "/settings/general";
   const handleRestored = () => setRestoreSignal((value) => value + 1);
@@ -73,6 +75,16 @@ function SettingsContentLayout() {
             )}
           >
             <div className="flex min-h-7 items-center gap-2 sm:min-h-6">
+              {simplified ? (
+                <button
+                  type="button"
+                  onClick={navigateBackWithinApp}
+                  aria-label="Back"
+                  className="-ms-1 flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-accent"
+                >
+                  <ChevronLeftIcon className="size-5" />
+                </button>
+              ) : null}
               <span className="text-sm font-medium text-foreground">Settings</span>
               {showRestoreDefaults ? (
                 <div className="ms-auto flex items-center gap-2">
