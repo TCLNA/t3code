@@ -247,9 +247,11 @@ const PortScannerLayerLive = PortScanner.layer.pipe(Layer.provide(ProcessRunner.
 // internally; its remaining requirements (ServerSettingsService plus the
 // platform FileSystem/Path/ChildProcessSpawner) are satisfied where this layer
 // is merged into the runtime dependency graph below.
-const SpeechLayerLive = Layer.mergeAll(SpeechToText.layer, TextToSpeech.layer, SpeechHumanize.layer).pipe(
-  Layer.provide(ProcessRunner.layer),
-);
+const SpeechLayerLive = Layer.mergeAll(
+  SpeechToText.layer,
+  TextToSpeech.layer,
+  SpeechHumanize.layer,
+).pipe(Layer.provide(ProcessRunner.layer));
 
 const TerminalLayerLive = TerminalManager.layer.pipe(
   Layer.provide(PtyAdapterLive),
@@ -337,7 +339,10 @@ const RuntimeCoreDependenciesLive = ReactorLayerLive.pipe(
   Layer.provideMerge(ServerSecretStore.layer),
   Layer.provideMerge(
     Layer.mergeAll(
-      CloudCliTokenManager.layer.pipe(Layer.provide(ServerSecretStore.layer)),
+      CloudCliTokenManager.layer.pipe(
+        Layer.provide(ServerSecretStore.layer),
+        Layer.provide(ExternalLauncher.layer),
+      ),
       CloudManagedEndpointRuntimeLive,
     ),
   ),

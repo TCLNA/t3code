@@ -15,6 +15,7 @@ import { APP_BASE_NAME, APP_DISPLAY_NAME, APP_STAGE_LABEL } from "../branding";
 import { resolveServerBackedAppDisplayName } from "../branding.logic";
 import { AppSidebarLayout } from "../components/AppSidebarLayout";
 import { CommandPalette } from "../components/CommandPalette";
+import { ConnectOnboardingDialog } from "../components/cloud/ConnectOnboardingDialog";
 import { RelayClientInstallDialog } from "../components/cloud/RelayClientInstallDialog";
 import { SshPasswordPromptDialog } from "../components/desktop/SshPasswordPromptDialog";
 import { ProviderUpdateLaunchNotification } from "../components/ProviderUpdateLaunchNotification";
@@ -53,7 +54,10 @@ import {
   type KeybindingsUpdateToastController,
 } from "../components/KeybindingsUpdateToast.logic";
 import { SimplifiedLayout } from "../components/simplified/SimplifiedLayout";
-import { parseSimplifiedSearch, useSimplifiedMode } from "../components/simplified/useSimplifiedMode";
+import {
+  parseSimplifiedSearch,
+  useSimplifiedMode,
+} from "../components/simplified/useSimplifiedMode";
 
 export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
@@ -107,7 +111,7 @@ function RootRouteView() {
     };
   }, [pathname]);
 
-  if (pathname === "/pair") {
+  if (pathname === "/pair" || pathname === "/connect" || pathname.startsWith("/connect/")) {
     return (
       <>
         <DocumentTitleSync />
@@ -145,6 +149,7 @@ function RootRouteView() {
         <DocumentTitleSync />
         {primaryEnvironmentAuthenticated ? <AuthenticatedTracingBootstrap /> : null}
         <RelayClientInstallDialog />
+        <ConnectOnboardingDialog />
         <SshPasswordPromptDialog />
         <SlowRpcRequestToastCoordinator />
         <HostedStaticEnvironmentBootstrap />
