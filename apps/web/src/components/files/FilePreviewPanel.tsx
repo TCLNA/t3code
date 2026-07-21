@@ -680,17 +680,20 @@ export default function FilePreviewPanel({
   const [preferRendered, setPreferRendered] = useState(
     () => getLocalStorageItem(MARKDOWN_VIEW_STORAGE_KEY, Schema.Boolean) ?? false,
   );
-  // A line-reveal request the user has explicitly switched to rendered, so
-  // navigating to a specific line still defaults to source view.
-  const [renderedRevealId, setRenderedRevealId] = useState<number | null>(null);
+  // A line-reveal the user has explicitly switched to rendered, scoped to the
+  // file's path because revealRequestId is only unique within a single path.
+  const [renderedReveal, setRenderedReveal] = useState<{ path: string; requestId: number } | null>(
+    null,
+  );
   const breadcrumbRef = useRef<HTMLDivElement>(null);
   const isMarkdown = relativePath ? isMarkdownPreviewFile(relativePath) : false;
   const renderMarkdown = resolveMarkdownRender({
     isMarkdown,
     preferRendered,
+    relativePath,
     revealLine,
     revealRequestId,
-    renderedRevealId,
+    renderedReveal,
   });
   const canOpenInBrowser =
     relativePath !== null && isPreviewSupportedInRuntime() && isBrowserPreviewFile(relativePath);
@@ -799,8 +802,16 @@ export default function FilePreviewPanel({
                     pressed={renderMarkdown}
                     onPressedChange={(pressed) => {
                       setPreferRendered(pressed);
-                      setLocalStorageItem(MARKDOWN_VIEW_STORAGE_KEY, pressed, Schema.Boolean);
-                      setRenderedRevealId(pressed ? revealRequestId : null);
+                      try {
+                        setLocalStorageItem(MARKDOWN_VIEW_STORAGE_KEY, pressed, Schema.Boolean);
+                      } catch (error) {
+                        console.error(error);
+                      }
+                      setRenderedReveal(
+                        pressed && relativePath
+                          ? { path: relativePath, requestId: revealRequestId }
+                          : null,
+                      );
                     }}
                     aria-label={renderMarkdown ? "Show markdown source" : "Show rendered markdown"}
                     variant="ghost"

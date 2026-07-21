@@ -5,15 +5,24 @@ export const MARKDOWN_VIEW_STORAGE_KEY = "t3code.markdownRenderView";
 export function resolveMarkdownRender(input: {
   isMarkdown: boolean;
   preferRendered: boolean;
+  relativePath: string | null;
   revealLine: number | null;
   revealRequestId: number;
-  renderedRevealId: number | null;
+  renderedReveal: { path: string; requestId: number } | null;
 }): boolean {
-  const { isMarkdown, preferRendered, revealLine, revealRequestId, renderedRevealId } = input;
+  const { isMarkdown, preferRendered, relativePath, revealLine, revealRequestId, renderedReveal } =
+    input;
   if (!isMarkdown || !preferRendered) return false;
-  // A line-reveal navigation shows source so the target line is visible,
-  // until the user explicitly switches this reveal request to rendered.
-  return revealLine === null || renderedRevealId === revealRequestId;
+  // A line-reveal navigation shows source so the target line is visible, until
+  // the user explicitly switches this file's reveal request to rendered. The
+  // acknowledgement is scoped per-file because revealRequestId is only unique
+  // within a single file's path (see rightPanelStore.openFile).
+  if (revealLine === null) return true;
+  return (
+    renderedReveal !== null &&
+    renderedReveal.path === relativePath &&
+    renderedReveal.requestId === revealRequestId
+  );
 }
 
 export function setMarkdownTaskChecked(
