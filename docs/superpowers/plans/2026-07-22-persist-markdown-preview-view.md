@@ -8,6 +8,18 @@
 
 **Tech Stack:** React, TypeScript, Effect `Schema`, `vite-plus/test` (vitest-compatible), existing `getLocalStorageItem`/`setLocalStorageItem` helpers.
 
+> **Post-implementation correction:** The task code below uses a bare
+> `renderedRevealId: number | null` acknowledgement. Review caught that
+> `revealRequestId` is only unique _within_ a single file's path, so a bare
+> number collides across files (the panel's state persists across file
+> switches). The shipped code (commit `fix(web): scope markdown reveal
+acknowledgement per file`) scopes it per-file as
+> `renderedReveal: { path: string; requestId: number } | null`, adds
+> `relativePath` to `resolveMarkdownRender`, guards the localStorage write in
+> try/catch, and adds a cross-file-collision regression test. See the updated
+> design doc for the corrected shapes; `filePreviewMode.ts` is the source of
+> truth.
+
 ## Global Constraints
 
 - No new dependencies.

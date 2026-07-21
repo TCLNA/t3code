@@ -62,17 +62,35 @@ Extract the render decision into a testable pure function:
 export function resolveMarkdownRender(input: {
   isMarkdown: boolean;
   preferRendered: boolean;
+  relativePath: string | null;
   revealLine: number | null;
   revealRequestId: number;
-  renderedRevealId: number | null;
+  renderedReveal: { path: string; requestId: number } | null;
 }): boolean {
-  const { isMarkdown, preferRendered, revealLine, revealRequestId, renderedRevealId } = input;
+  const { isMarkdown, preferRendered, relativePath, revealLine, revealRequestId, renderedReveal } =
+    input;
   if (!isMarkdown || !preferRendered) return false;
-  // A line-reveal forces source until the user opts back into rendered
-  // for that exact reveal request.
-  return revealLine === null || renderedRevealId === revealRequestId;
+  // A line-reveal navigation shows source so the target line is visible, until
+  // the user explicitly switches this file's reveal request to rendered. The
+  // acknowledgement is scoped per-file because revealRequestId is only unique
+  // within a single file's path (see rightPanelStore.openFile).
+  if (revealLine === null) return true;
+  return (
+    renderedReveal !== null &&
+    renderedReveal.path === relativePath &&
+    renderedReveal.requestId === revealRequestId
+  );
 }
 ```
+
+**Why the acknowledgement is per-file:** `revealRequestId` is only unique
+_within_ a single file's path (`rightPanelStore.openFile` computes
+`(existing?.revealRequestId ?? 0) + 1`, keyed by `file:${path}`), and
+`FilePreviewPanel`'s state persists across file switches (the panel is keyed by
+`environmentId:workspaceRoot`, not by path). A bare `renderedRevealId: number`
+therefore collides across files — file A's acknowledged reveal (id 1) would
+match file B's first-ever reveal (also id 1) and wrongly render B. Scoping the
+acknowledgement to `{ path, requestId }` prevents that.
 
 Add a storage-key constant alongside the existing pattern:
 
@@ -88,9 +106,11 @@ Replace the `markdownView` object with two pieces of state:
 const [preferRendered, setPreferRendered] = useState(
   () => getLocalStorageItem(MARKDOWN_VIEW_STORAGE_KEY, Schema.Boolean) ?? false,
 );
-// Tracks a reveal request the user has explicitly switched to rendered,
-// so line-reveal navigation shows source by default but can be overridden.
-const [renderedRevealId, setRenderedRevealId] = useState<number | null>(null);
+// A line-reveal the user has explicitly switched to rendered, scoped to the
+// file's path because revealRequestId is only unique within a single path.
+const [renderedReveal, setRenderedReveal] = useState<{ path: string; requestId: number } | null>(
+  null,
+);
 ```
 
 Derivation:
@@ -99,9 +119,10 @@ Derivation:
 const renderMarkdown = resolveMarkdownRender({
   isMarkdown,
   preferRendered,
+  relativePath,
   revealLine,
   revealRequestId,
-  renderedRevealId,
+  renderedReveal,
 });
 ```
 
@@ -110,8 +131,14 @@ Toggle handler (`:790`):
 ```ts
 onPressedChange={(pressed) => {
   setPreferRendered(pressed);
-  setLocalStorageItem(MARKDOWN_VIEW_STORAGE_KEY, pressed, Schema.Boolean);
-  setRenderedRevealId(pressed ? revealRequestId : null);
+  try {
+    setLocalStorageItem(MARKDOWN_VIEW_STORAGE_KEY, pressed, Schema.Boolean);
+  } catch (error) {
+    console.error(error);
+  }
+  setRenderedReveal(
+    pressed && relativePath ? { path: relativePath, requestId: revealRequestId } : null,
+  );
 }}
 ```
 
@@ -123,22 +150,24 @@ The `Toggle`'s `pressed={renderMarkdown}`, the icon swap, `aria-label`, and the
 
 ```
 open .md ──► preferRendered (from localStorage) ──► resolveMarkdownRender ──► renderMarkdown
-toggle ────► setPreferRendered + setLocalStorageItem + setRenderedRevealId ──► resolveMarkdownRender
-open .md at line ► revealLine set, renderedRevealId ≠ requestId ──► source (until toggled)
+toggle ────► setPreferRendered + setLocalStorageItem + setRenderedReveal ──► resolveMarkdownRender
+open .md at line ► revealLine set, renderedReveal.path/requestId ≠ current ──► source (until toggled)
 ```
 
 ## Testing
 
 Unit tests for `resolveMarkdownRender` (`filePreviewMode.test.ts`), truth table:
 
-| isMarkdown | preferRendered | revealLine | renderedRevealId vs requestId | → result |
-| ---------- | -------------- | ---------- | ----------------------------- | -------- |
-| false      | true           | null       | —                             | false    |
-| true       | false          | null       | —                             | false    |
-| true       | true           | null       | —                             | **true** |
-| true       | true           | 42         | mismatch                      | false    |
-| true       | true           | 42         | match                         | **true** |
-| true       | false          | 42         | match                         | false    |
+| isMarkdown | preferRendered | revealLine | renderedReveal vs current (path, requestId) | → result |
+| ---------- | -------------- | ---------- | ------------------------------------------- | -------- |
+| false      | true           | null       | —                                           | false    |
+| true       | false          | null       | —                                           | false    |
+| true       | true           | null       | —                                           | **true** |
+| true       | true           | 42         | requestId mismatch                          | false    |
+| true       | true           | 42         | null (no acknowledgement)                   | false    |
+| true       | true           | 42         | path + requestId match                      | **true** |
+| true       | true           | 42         | different path, same requestId (collision)  | false    |
+| true       | false          | 42         | path + requestId match                      | false    |
 
 Manual:
 
