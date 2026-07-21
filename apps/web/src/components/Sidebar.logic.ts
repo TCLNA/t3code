@@ -484,6 +484,25 @@ export function resolveThreadStatusPill(input: {
   return null;
 }
 
+const SETTLED_THREAD_STATUS_LABELS = new Set<ThreadStatusPill["label"]>([
+  "Completed",
+  "Awaiting Input",
+  "Plan Ready",
+  "Pending Approval",
+]);
+
+/**
+ * True when a thread row transitions from actively "Working" to a settled
+ * status — the signal that an assistant turn just finished. Used to trigger
+ * the sidebar row "done" wash animation.
+ */
+export function shouldRippleOnStatusChange(
+  prev: ThreadStatusPill["label"] | null,
+  next: ThreadStatusPill["label"] | null,
+): boolean {
+  return prev === "Working" && next !== null && SETTLED_THREAD_STATUS_LABELS.has(next);
+}
+
 export function resolveProjectStatusIndicator(
   statuses: ReadonlyArray<ThreadStatusPill | null>,
 ): ThreadStatusPill | null {

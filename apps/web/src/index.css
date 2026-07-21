@@ -113,6 +113,7 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(t3-mobil
      (~20% of the cycle) instead of every vsync. Keep flat holds dominant. */
   --animate-status-pulse: status-pulse 2s infinite;
   --animate-status-ping: status-ping 2s infinite;
+  --animate-row-done-wash: t3-row-done-wash 900ms ease-out both;
   --font-sans:
     "DM Sans Variable", "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
     sans-serif;
@@ -184,6 +185,25 @@ html[data-mobile-composer-route-transition="true"]::view-transition-old(t3-mobil
       opacity: 0;
       scale: 2;
     }
+  }
+  @keyframes t3-row-done-wash {
+    0% {
+      opacity: 0;
+      background-position: -100% 0;
+    }
+    18% {
+      opacity: 0.45;
+    }
+    100% {
+      opacity: 0;
+      background-position: 200% 0;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-row-done-wash] {
+    animation: none !important;
   }
 }
 

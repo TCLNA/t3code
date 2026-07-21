@@ -206,6 +206,7 @@ import {
   resolveThreadStatusPill,
   orderItemsByPreferredIds,
   shouldClearThreadSelectionOnMouseDown,
+  shouldRippleOnStatusChange,
   sortProjectsForSidebar,
   useThreadJumpHintVisibility,
   ThreadStatusPill,
@@ -484,6 +485,15 @@ export const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThr
       lastVisitedAt,
     },
   });
+  const [doneWashKey, setDoneWashKey] = useState(0);
+  const previousThreadStatusLabelRef = useRef<ThreadStatusPill["label"] | null>(null);
+  useEffect(() => {
+    const nextLabel = threadStatus?.label ?? null;
+    if (shouldRippleOnStatusChange(previousThreadStatusLabelRef.current, nextLabel)) {
+      setDoneWashKey((key) => key + 1);
+    }
+    previousThreadStatusLabelRef.current = nextLabel;
+  }, [threadStatus?.label]);
   const pr = resolveThreadPr(thread.branch, gitStatus.data);
   const prStatus = prStatusIndicator(pr, gitStatus.data?.sourceControlProvider);
   const terminalStatus = terminalStatusFromRunningIds(runningTerminalIds);
@@ -709,6 +719,16 @@ export const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThr
         onKeyDown={handleRowKeyDown}
         onContextMenu={handleRowContextMenu}
       >
+        {doneWashKey > 0 && threadStatus && (
+          <span
+            key={doneWashKey}
+            aria-hidden
+            data-row-done-wash
+            className={`pointer-events-none absolute inset-0 -z-10 rounded-md bg-[linear-gradient(90deg,transparent,currentColor,transparent)] bg-[length:50%_100%] bg-no-repeat ${threadStatus.colorClass}`}
+            style={{ animation: "var(--animate-row-done-wash)" }}
+            onAnimationEnd={() => setDoneWashKey(0)}
+          />
+        )}
         <div className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
           {prStatus && (
             <Tooltip>
@@ -2803,7 +2823,7 @@ function SortableProjectItem({
   );
 }
 
-function SidebarVoiceDropdown() {
+function SidebarVoiceDropdown({ onBackdrop = false }: { onBackdrop?: boolean }) {
   const settings = useAtomValue(primaryServerSettingsAtom);
   const updateSettings = useUpdatePrimarySettings();
   const ttsMuted = useVoiceStore((s) => s.ttsMuted);
@@ -2817,7 +2837,10 @@ function SidebarVoiceDropdown() {
   return (
     <Popover>
       <PopoverTrigger
-        className="ml-auto flex size-8 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:text-foreground/80"
+        className={cn(
+          "relative z-10 ml-auto flex size-8 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:text-foreground/80",
+          onBackdrop && "hover:bg-white/15 [&_svg]:text-white/85! [&_svg]:hover:text-white!",
+        )}
         aria-label="Voice options"
       >
         {ttsMuted ? <VolumeXIcon className="size-4" /> : <Volume2Icon className="size-4" />}
@@ -2883,7 +2906,7 @@ const SidebarChromeHeader = memo(function SidebarChromeHeader({
         )}
       />
       <SidebarBrand onBackdrop={backdropVariant !== null} />
-      <SidebarVoiceDropdown />
+      <SidebarVoiceDropdown onBackdrop={backdropVariant !== null} />
     </SidebarHeader>
   );
 });

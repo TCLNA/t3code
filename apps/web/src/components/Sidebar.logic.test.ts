@@ -20,6 +20,7 @@ import {
   resolveThreadRowClassName,
   resolveThreadStatusPill,
   shouldClearThreadSelectionOnMouseDown,
+  shouldRippleOnStatusChange,
   sortProjectsForSidebar,
   sortScopedProjectsForSidebar,
   THREAD_JUMP_HINT_SHOW_DELAY_MS,
@@ -808,6 +809,44 @@ describe("resolveProjectStatusIndicator", () => {
         },
       ]),
     ).toMatchObject({ label: "Plan Ready", dotClass: "bg-violet-500" });
+  });
+});
+
+describe("shouldRippleOnStatusChange", () => {
+  it("ripples when Working settles into Completed", () => {
+    expect(shouldRippleOnStatusChange("Working", "Completed")).toBe(true);
+  });
+
+  it("ripples when Working settles into Awaiting Input", () => {
+    expect(shouldRippleOnStatusChange("Working", "Awaiting Input")).toBe(true);
+  });
+
+  it("ripples when Working settles into Plan Ready", () => {
+    expect(shouldRippleOnStatusChange("Working", "Plan Ready")).toBe(true);
+  });
+
+  it("ripples when Working settles into Pending Approval", () => {
+    expect(shouldRippleOnStatusChange("Working", "Pending Approval")).toBe(true);
+  });
+
+  it("does not ripple when Working stays active as Connecting", () => {
+    expect(shouldRippleOnStatusChange("Working", "Connecting")).toBe(false);
+  });
+
+  it("does not ripple when Working clears to no status", () => {
+    expect(shouldRippleOnStatusChange("Working", null)).toBe(false);
+  });
+
+  it("does not ripple when a non-Working status settles", () => {
+    expect(shouldRippleOnStatusChange("Awaiting Input", "Completed")).toBe(false);
+  });
+
+  it("does not ripple when a thread begins Working", () => {
+    expect(shouldRippleOnStatusChange(null, "Working")).toBe(false);
+  });
+
+  it("does not ripple when Working is unchanged", () => {
+    expect(shouldRippleOnStatusChange("Working", "Working")).toBe(false);
   });
 });
 
