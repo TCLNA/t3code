@@ -54,7 +54,12 @@ import { installFileEditorDismissal } from "./fileEditorDismissal";
 import { LocalCommentAnnotation } from "./LocalCommentAnnotation";
 import { projectFileCacheKey } from "./fileContentRevision";
 import { fileBreadcrumbs } from "./filePath";
-import { isMarkdownPreviewFile, setMarkdownTaskChecked } from "./filePreviewMode";
+import {
+  isMarkdownPreviewFile,
+  MARKDOWN_VIEW_STORAGE_KEY,
+  resolveMarkdownRender,
+  setMarkdownTaskChecked,
+} from "./filePreviewMode";
 import { FileSaveCoordinator } from "./fileSaveCoordinator";
 import {
   confirmProjectFileQueryData,
@@ -672,16 +677,21 @@ export default function FilePreviewPanel({
   const isImage = relativePath !== null && isWorkspaceImagePreviewPath(relativePath);
   const file = useProjectFileQuery(environmentId, cwd, relativePath, !isImage);
   const [explorerOpen, setExplorerOpen] = useState(initialExplorerOpen);
-  const [markdownView, setMarkdownView] = useState<{
-    path: string | null;
-    revealRequestId: number | null;
-  }>({ path: null, revealRequestId: null });
+  const [preferRendered, setPreferRendered] = useState(
+    () => getLocalStorageItem(MARKDOWN_VIEW_STORAGE_KEY, Schema.Boolean) ?? false,
+  );
+  // A line-reveal request the user has explicitly switched to rendered, so
+  // navigating to a specific line still defaults to source view.
+  const [renderedRevealId, setRenderedRevealId] = useState<number | null>(null);
   const breadcrumbRef = useRef<HTMLDivElement>(null);
   const isMarkdown = relativePath ? isMarkdownPreviewFile(relativePath) : false;
-  const renderMarkdown =
-    isMarkdown &&
-    markdownView.path === relativePath &&
-    (revealLine === null || markdownView.revealRequestId === revealRequestId);
+  const renderMarkdown = resolveMarkdownRender({
+    isMarkdown,
+    preferRendered,
+    revealLine,
+    revealRequestId,
+    renderedRevealId,
+  });
   const canOpenInBrowser =
     relativePath !== null && isPreviewSupportedInRuntime() && isBrowserPreviewFile(relativePath);
   const absolutePath = relativePath ? resolvePathLinkTarget(relativePath, cwd) : null;
@@ -788,10 +798,9 @@ export default function FilePreviewPanel({
                     className="shrink-0"
                     pressed={renderMarkdown}
                     onPressedChange={(pressed) => {
-                      setMarkdownView({
-                        path: pressed ? relativePath : null,
-                        revealRequestId: pressed ? revealRequestId : null,
-                      });
+                      setPreferRendered(pressed);
+                      setLocalStorageItem(MARKDOWN_VIEW_STORAGE_KEY, pressed, Schema.Boolean);
+                      setRenderedRevealId(pressed ? revealRequestId : null);
                     }}
                     aria-label={renderMarkdown ? "Show markdown source" : "Show rendered markdown"}
                     variant="ghost"
