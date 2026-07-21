@@ -1,5 +1,21 @@
 export const isMarkdownPreviewFile = (path: string): boolean => /\.(?:md|mdx)$/i.test(path);
 
+export const MARKDOWN_VIEW_STORAGE_KEY = "t3code.markdownRenderView";
+
+export function resolveMarkdownRender(input: {
+  isMarkdown: boolean;
+  preferRendered: boolean;
+  revealLine: number | null;
+  revealRequestId: number;
+  renderedRevealId: number | null;
+}): boolean {
+  const { isMarkdown, preferRendered, revealLine, revealRequestId, renderedRevealId } = input;
+  if (!isMarkdown || !preferRendered) return false;
+  // A line-reveal navigation shows source so the target line is visible,
+  // until the user explicitly switches this reveal request to rendered.
+  return revealLine === null || renderedRevealId === revealRequestId;
+}
+
 export function setMarkdownTaskChecked(
   markdown: string,
   markerOffset: number,
