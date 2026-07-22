@@ -102,6 +102,7 @@ import { previewEnvironment } from "../state/preview";
 import {
   legacyProjectCwdPreferenceKey,
   resolveProjectExpanded,
+  resolveProjectHidden,
   useUiStateStore,
 } from "../uiStateStore";
 import {
@@ -3271,6 +3272,8 @@ export default function Sidebar() {
   const projects = useProjects();
   const sidebarThreads = useThreadShells();
   const projectExpandedById = useUiStateStore((store) => store.projectExpandedById);
+  const projectHiddenById = useUiStateStore((store) => store.projectHiddenById);
+  const showHiddenProjects = useUiStateStore((store) => store.showHiddenProjects);
   const projectOrder = useUiStateStore((store) => store.projectOrder);
   const reorderProjects = useUiStateStore((store) => store.reorderProjects);
   const navigate = useNavigate();
@@ -3556,12 +3559,23 @@ export default function Sidebar() {
       sidebarProjectSortOrder,
     ).flatMap((project) => {
       const resolvedProject = sidebarProjectByKey.get(project.id);
-      return resolvedProject ? [resolvedProject] : [];
+      if (!resolvedProject) {
+        return [];
+      }
+      if (
+        !showHiddenProjects &&
+        resolveProjectHidden(projectHiddenById, resolvedProject.projectKey)
+      ) {
+        return [];
+      }
+      return [resolvedProject];
     });
   }, [
     sidebarProjectSortOrder,
     physicalToLogicalKey,
+    projectHiddenById,
     projectPhysicalKeyByScopedRef,
+    showHiddenProjects,
     sidebarProjectByKey,
     sidebarProjects,
     visibleThreads,
