@@ -71,12 +71,19 @@ Expected: prints signatures, `sr: 24000`, and `file` reports a RIFF/WAVE audio f
 
 If any of the calls in Step 3 differ from the design doc (class name, `nano=True` kwarg, `generate` taking no reference, `m.sr`), note the ACTUAL working form here in the plan before Task 2 — Task 2's adapter must use exactly what Step 3 proved works.
 
-Confirmed form (fill in after Step 3):
+Confirmed form (verified 2026-07-22, nano RTF 1.593 on this 12-core CPU — best of base/turbo/nano):
 
-- Import: `________`
-- Load: `________`
-- Generate (default voice): `________`
-- Sample-rate attr: `________`
+- Import: `from chatterbox.tts_turbo import ChatterboxTurboTTS`
+- Load: `ChatterboxTurboTTS.from_pretrained(device="cpu", nano=True)`
+- Generate (default voice): `model.generate(text)` (no `audio_prompt_path`)
+- Sample-rate attr: `model.sr` (== 24000)
+- Save: `torchaudio.save(out, wav, model.sr)`
+
+ENV NOTES (already applied venv-wide during Task 1):
+
+- nano is NOT in PyPI 0.1.7 — installed from git master (`pip install --force-reinstall --no-deps --no-cache-dir "git+https://github.com/resemble-ai/chatterbox.git@master"`, HEAD `5de7a54`). A bare `git+…` URL may resolve a stale cached clone missing the nano merge — always pin `@master` + `--no-cache-dir`.
+- `pkg_resources` (needed by the `perth` watermarker) restored via `pip install "setuptools<81"` — no in-process shim needed.
+- `nano=True` is a kwarg on `ChatterboxTurboTTS`; do NOT use the stale `nano` branch's separate `ChatterboxNanoTTS` class.
 
 - [ ] **Step 5: No commit** (venv is machine-local, gitignored territory under `~/opt`).
 
