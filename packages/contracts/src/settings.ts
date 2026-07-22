@@ -430,6 +430,15 @@ export const SpeechSettings = makeProviderSettingsSchema(
         providerSettingsForm: { control: "switch" },
       }),
     ),
+    humanizeEnabled: Schema.Boolean.pipe(
+      Schema.withDecodingDefault(Effect.succeed(true)),
+      Schema.annotateKey({
+        title: "Humanize TTS text",
+        description:
+          "Rewrite code, paths, and symbols into natural speech with a small LLM before speaking. When off, text is spoken as-is with markers stripped.",
+        providerSettingsForm: { control: "switch" },
+      }),
+    ),
     ttsEngine: Schema.Literals(["kokoro", "chatterbox"]).pipe(
       Schema.withDecodingDefault(Effect.succeed("kokoro")),
       Schema.annotateKey({
@@ -504,6 +513,7 @@ export const SpeechSettings = makeProviderSettingsSchema(
     order: [
       "sttEnabled",
       "ttsEnabled",
+      "humanizeEnabled",
       "whisperBinaryPath",
       "whisperModelPath",
       "kokoroCommand",
@@ -677,6 +687,7 @@ export const ServerSettingsPatch = Schema.Struct({
     Schema.Struct({
       sttEnabled: Schema.optionalKey(Schema.Boolean),
       ttsEnabled: Schema.optionalKey(Schema.Boolean),
+      humanizeEnabled: Schema.optionalKey(Schema.Boolean),
       ttsEngine: Schema.optionalKey(Schema.Literals(["kokoro", "chatterbox"])),
       chatterboxCommand: Schema.optionalKey(TrimmedString),
       whisperBinaryPath: Schema.optionalKey(TrimmedString),

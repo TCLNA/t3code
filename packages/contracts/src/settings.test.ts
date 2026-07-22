@@ -236,4 +236,19 @@ describe("SpeechSettings.kokoroEnabledVoices", () => {
     expect(patch.speech?.ttsEngine).toBe("chatterbox");
     expect(patch.speech?.chatterboxCommand).toBe("/opt/cb.sh");
   });
+
+  it("defaults humanizeEnabled to true when absent", () => {
+    const decoded = decodeServerSettings({});
+    expect(decoded.speech.humanizeEnabled).toBe(true);
+  });
+  it("decodes an explicit humanizeEnabled false", () => {
+    const decoded = decodeServerSettings({ speech: { humanizeEnabled: false } });
+    expect(decoded.speech.humanizeEnabled).toBe(false);
+  });
+  it("accepts humanizeEnabled in ServerSettingsPatch.speech", () => {
+    const patch = decodeServerSettingsPatch({
+      speech: { humanizeEnabled: false },
+    });
+    expect(patch.speech?.humanizeEnabled).toBe(false);
+  });
 });
