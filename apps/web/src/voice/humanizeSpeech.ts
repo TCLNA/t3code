@@ -28,3 +28,12 @@ export async function humanizeForSpeech(sentence: string): Promise<string> {
     clearTimeout(timer);
   }
 }
+
+/**
+ * Prepare a marked sentence for TTS. When humanization is enabled, delegate to
+ * the LLM humanizer; when disabled, skip the network round-trip entirely and
+ * just strip markers so text is spoken as-is.
+ */
+export function prepareForSpeech(sentence: string, humanizeEnabled: boolean): Promise<string> {
+  return humanizeEnabled ? humanizeForSpeech(sentence) : Promise.resolve(stripMarkers(sentence));
+}
