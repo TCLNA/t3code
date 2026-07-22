@@ -38,10 +38,51 @@ const SENTENCE_BOUNDARY = /[.!?…](?:["')\]]+)?(?=\s|$)/;
 
 /** File extensions common enough that "name.ext" should be treated as a path. */
 const COMMON_FILE_EXTENSIONS = new Set([
-  "ts", "tsx", "js", "jsx", "mjs", "cjs", "json", "md", "mdx", "css", "scss",
-  "html", "htm", "py", "rs", "go", "java", "kt", "rb", "php", "c", "h", "cpp",
-  "cc", "hpp", "cs", "sh", "bash", "zsh", "yml", "yaml", "toml", "ini", "env",
-  "lock", "sql", "xml", "svg", "png", "jpg", "jpeg", "gif", "wasm", "txt", "sh",
+  "ts",
+  "tsx",
+  "js",
+  "jsx",
+  "mjs",
+  "cjs",
+  "json",
+  "md",
+  "mdx",
+  "css",
+  "scss",
+  "html",
+  "htm",
+  "py",
+  "rs",
+  "go",
+  "java",
+  "kt",
+  "rb",
+  "php",
+  "c",
+  "h",
+  "cpp",
+  "cc",
+  "hpp",
+  "cs",
+  "sh",
+  "bash",
+  "zsh",
+  "yml",
+  "yaml",
+  "toml",
+  "ini",
+  "env",
+  "lock",
+  "sql",
+  "xml",
+  "svg",
+  "png",
+  "jpg",
+  "jpeg",
+  "gif",
+  "wasm",
+  "txt",
+  "sh",
 ]);
 
 function markPathLike(text: string): string {
@@ -49,7 +90,11 @@ function markPathLike(text: string): string {
     if (match.includes("/")) return `[PATH:${match}]`;
     const dot = match.lastIndexOf(".");
     if (dot === -1) return match;
-    const ext = match.slice(dot + 1).split(":")[0]?.toLowerCase() ?? "";
+    const ext =
+      match
+        .slice(dot + 1)
+        .split(":")[0]
+        ?.toLowerCase() ?? "";
     return COMMON_FILE_EXTENSIONS.has(ext) ? `[PATH:${match}]` : match;
   });
 }
@@ -75,8 +120,8 @@ export function stripMarkers(text: string): string {
  */
 export function markdownToSpeakable(markdown: string): string {
   let text = markdown;
-  text = text.replace(FENCED_CODE_BLOCK, " ");
-  text = text.replace(UNTERMINATED_FENCE, " ");
+  text = text.replace(FENCED_CODE_BLOCK, "[CODEBLOCK]");
+  text = text.replace(UNTERMINATED_FENCE, "[CODEBLOCK]");
   text = text.replace(IMAGE, " ");
   text = text.replace(REFERENCE_LINK, "$1");
   text = text.replace(LINK, "$1");
@@ -91,8 +136,16 @@ export function markdownToSpeakable(markdown: string): string {
   text = markPathLike(text);
   text = markArrows(text);
   text = text.replace(EMPHASIS_MARKERS, "");
+  // Drop a colon-terminated sentence that only introduces a now-removed code
+  // block (back to the previous sentence boundary), then remove any remaining
+  // code-block sentinels. The sentinel never escapes this function.
+  text = text.replace(/[^.!?\n]*:\s*\[CODEBLOCK\]/g, " ");
+  text = text.replace(/\[CODEBLOCK\]/g, " ");
   // Collapse whitespace (including the gaps left by removals).
-  text = text.replace(/[ \t]+/g, " ").replace(/\s*\n\s*/g, "\n").trim();
+  text = text
+    .replace(/[ \t]+/g, " ")
+    .replace(/\s*\n\s*/g, "\n")
+    .trim();
   return text;
 }
 
@@ -143,10 +196,7 @@ function normalizeForCodeword(value: string): string {
  * case/punctuation/whitespace-insensitive and only fires when the phrase is at
  * the END of the transcript (so "send prompt" mid-sentence doesn't submit).
  */
-export function detectSendPromptCodeword(
-  transcript: string,
-  phrase: string,
-): CodewordResult {
+export function detectSendPromptCodeword(transcript: string, phrase: string): CodewordResult {
   const normalizedPhrase = normalizeForCodeword(phrase);
   if (normalizedPhrase.length === 0) {
     return { matched: false, strippedText: transcript.trim() };

@@ -8,18 +8,51 @@ import {
 } from "./speakableText.ts";
 
 describe("markdownToSpeakable", () => {
-  it("drops fenced code blocks", () => {
+  it("drops fenced code blocks and their colon-introducer sentence", () => {
     const md = "Here is the fix:\n\n```ts\nconst x = 1;\n```\n\nAll done.";
     const spoken = markdownToSpeakable(md);
     expect(spoken).not.toContain("const x");
-    expect(spoken).toContain("Here is the fix");
+    expect(spoken).not.toContain("Here is the fix");
+    expect(spoken).not.toContain("[CODEBLOCK]");
     expect(spoken).toContain("All done.");
   });
-
-  it("drops an unterminated (still streaming) fence", () => {
+  it("drops an unterminated (still streaming) fence and its colon-introducer", () => {
     const md = "Try this:\n```js\nconsole.log('partial";
     const spoken = markdownToSpeakable(md);
-    expect(spoken).toBe("Try this:");
+    expect(spoken).toBe("");
+  });
+  it("drops a colon-terminated sentence that only introduces a code block", () => {
+    const md = "A one-liner to check the device:\n\n```py\nx = 1\n```\n\nRun it now.";
+    const spoken = markdownToSpeakable(md);
+    expect(spoken).not.toContain("check the device");
+    expect(spoken).not.toContain("[CODEBLOCK]");
+    expect(spoken).toContain("Run it now.");
+  });
+  it("keeps a non-colon sentence before a code block", () => {
+    const md = "All done.\n\n```py\nx = 1\n```";
+    const spoken = markdownToSpeakable(md);
+    expect(spoken).toContain("All done.");
+    expect(spoken).not.toContain("[CODEBLOCK]");
+  });
+  it("drops only the colon-introducer clause, keeping the prior sentence", () => {
+    const md = "Here's the setup. Run this:\n\n```sh\nls\n```";
+    const spoken = markdownToSpeakable(md);
+    expect(spoken).toContain("Here's the setup.");
+    expect(spoken).not.toContain("Run this");
+    expect(spoken).not.toContain("[CODEBLOCK]");
+  });
+  it("does not treat a mid-sentence colon like 3:1 as an introducer", () => {
+    const md = "The ratio is 3:1\n\n```txt\ndata\n```";
+    const spoken = markdownToSpeakable(md);
+    expect(spoken).toContain("The ratio is 3:1");
+    expect(spoken).not.toContain("[CODEBLOCK]");
+  });
+  it("handles a code block at the very start with nothing to drop", () => {
+    const md = "```py\nx = 1\n```\n\nText after.";
+    const spoken = markdownToSpeakable(md);
+    expect(spoken).toContain("Text after.");
+    expect(spoken).not.toContain("x = 1");
+    expect(spoken).not.toContain("[CODEBLOCK]");
   });
 
   it("marks inline code with [CODE:…] and removes backticks", () => {
@@ -110,7 +143,9 @@ describe("stripMarkers", () => {
   });
 
   it("handles mixed marker sentence", () => {
-    const result = stripMarkers("Update [CODE:useVoiceStore] so [PATH:foo.ts] returns [ARROW:->] value.");
+    const result = stripMarkers(
+      "Update [CODE:useVoiceStore] so [PATH:foo.ts] returns [ARROW:->] value.",
+    );
     expect(result).toBe("Update useVoiceStore so  returns , value.");
   });
 });
