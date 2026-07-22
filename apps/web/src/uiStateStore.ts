@@ -25,11 +25,15 @@ export interface PersistedUiState {
   projectOrderCwds?: string[];
   defaultAdvertisedEndpointKey?: string | null;
   threadChangedFilesExpandedById?: Record<string, Record<string, boolean>>;
+  projectHiddenById?: Record<string, boolean>;
+  showHiddenProjects?: boolean;
 }
 
 export interface UiProjectState {
   projectExpandedById: Record<string, boolean>;
+  projectHiddenById: Record<string, boolean>;
   projectOrder: string[];
+  showHiddenProjects: boolean;
 }
 
 export interface UiThreadState {
@@ -45,7 +49,9 @@ export interface UiState extends UiProjectState, UiThreadState, UiEndpointState 
 
 const initialState: UiState = {
   projectExpandedById: {},
+  projectHiddenById: {},
   projectOrder: [],
+  showHiddenProjects: false,
   threadLastVisitedAtById: {},
   threadChangedFilesExpandedById: {},
   defaultAdvertisedEndpointKey: null,
@@ -122,7 +128,9 @@ export function parsePersistedState(parsed: PersistedUiState): UiState {
 
   return {
     projectExpandedById,
+    projectHiddenById: sanitizeBooleanRecord(parsed.projectHiddenById),
     projectOrder,
+    showHiddenProjects: parsed.showHiddenProjects === true,
     threadLastVisitedAtById: sanitizeTimestampRecord(parsed.threadLastVisitedAtById),
     threadChangedFilesExpandedById: sanitizePersistedThreadChangedFilesExpanded(
       parsed.threadChangedFilesExpandedById,
@@ -207,7 +215,9 @@ export function persistState(state: UiState): void {
       PERSISTED_STATE_KEY,
       JSON.stringify({
         projectExpandedById,
+        projectHiddenById: state.projectHiddenById,
         projectOrder: state.projectOrder,
+        showHiddenProjects: state.showHiddenProjects,
         threadLastVisitedAtById: state.threadLastVisitedAtById,
         defaultAdvertisedEndpointKey: state.defaultAdvertisedEndpointKey,
         threadChangedFilesExpandedById,
@@ -367,6 +377,36 @@ export function setProjectExpanded(
   };
 }
 
+export function resolveProjectHidden(
+  projectHiddenById: Readonly<Record<string, boolean>>,
+  projectKey: string,
+): boolean {
+  return projectHiddenById[projectKey] ?? false;
+}
+
+export function setProjectHidden(state: UiState, projectKey: string, hidden: boolean): UiState {
+  if ((state.projectHiddenById[projectKey] ?? false) === hidden) {
+    return state;
+  }
+  return {
+    ...state,
+    projectHiddenById: {
+      ...state.projectHiddenById,
+      [projectKey]: hidden,
+    },
+  };
+}
+
+export function setShowHiddenProjects(state: UiState, value: boolean): UiState {
+  if (state.showHiddenProjects === value) {
+    return state;
+  }
+  return {
+    ...state,
+    showHiddenProjects: value,
+  };
+}
+
 export function reorderProjects(
   state: UiState,
   currentProjectOrder: readonly string[],
@@ -417,6 +457,8 @@ interface UiStateStore extends UiState {
   setThreadChangedFilesExpanded: (threadId: string, turnId: string, expanded: boolean) => void;
   setDefaultAdvertisedEndpointKey: (key: string | null) => void;
   setProjectExpanded: (projectIds: string | readonly string[], expanded: boolean) => void;
+  setProjectHidden: (projectKey: string, hidden: boolean) => void;
+  setShowHiddenProjects: (value: boolean) => void;
   reorderProjects: (
     currentProjectOrder: readonly string[],
     draggedProjectIds: readonly string[],
@@ -436,6 +478,9 @@ export const useUiStateStore = create<UiStateStore>((set) => ({
     set((state) => setDefaultAdvertisedEndpointKey(state, key)),
   setProjectExpanded: (projectIds, expanded) =>
     set((state) => setProjectExpanded(state, projectIds, expanded)),
+  setProjectHidden: (projectKey, hidden) =>
+    set((state) => setProjectHidden(state, projectKey, hidden)),
+  setShowHiddenProjects: (value) => set((state) => setShowHiddenProjects(state, value)),
   reorderProjects: (currentProjectOrder, draggedProjectIds, targetProjectIds) =>
     set((state) =>
       reorderProjects(state, currentProjectOrder, draggedProjectIds, targetProjectIds),

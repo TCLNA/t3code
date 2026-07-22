@@ -11,8 +11,11 @@ import {
   persistState,
   reorderProjects,
   resolveProjectExpanded,
+  resolveProjectHidden,
   setDefaultAdvertisedEndpointKey,
   setProjectExpanded,
+  setProjectHidden,
+  setShowHiddenProjects,
   setThreadChangedFilesExpanded,
   type UiState,
 } from "./uiStateStore";
@@ -24,6 +27,8 @@ function makeUiState(overrides: Partial<UiState> = {}): UiState {
     threadLastVisitedAtById: {},
     threadChangedFilesExpandedById: {},
     defaultAdvertisedEndpointKey: null,
+    projectHiddenById: {},
+    showHiddenProjects: false,
     ...overrides,
   };
 }
@@ -177,6 +182,8 @@ describe("parsePersistedState", () => {
           "turn-1": false,
         },
       },
+      projectHiddenById: {},
+      showHiddenProjects: false,
     });
   });
 
@@ -283,6 +290,8 @@ describe("uiStateStore persistence", () => {
           "turn-1": false,
         },
       },
+      projectHiddenById: {},
+      showHiddenProjects: false,
     });
     expect(parsePersistedState(persisted)).toEqual({
       ...state,
@@ -292,6 +301,21 @@ describe("uiStateStore persistence", () => {
         },
       },
     });
+  });
+
+  it("persists non-default hidden-project preferences", () => {
+    const state = makeUiState({
+      projectHiddenById: { "proj-1": true },
+      showHiddenProjects: true,
+    });
+
+    persistState(state);
+
+    const persisted = JSON.parse(
+      localStorageStub.getItem(PERSISTED_STATE_KEY) ?? "{}",
+    ) as PersistedUiState;
+    expect(persisted.projectHiddenById).toEqual({ "proj-1": true });
+    expect(persisted.showHiddenProjects).toBe(true);
   });
 
   it("drops the temporary expanded-only migration fallback when rewriting state", () => {
@@ -305,5 +329,46 @@ describe("uiStateStore persistence", () => {
       localStorageStub.getItem(PERSISTED_STATE_KEY) ?? "{}",
     ) as PersistedUiState;
     expect(resolveProjectExpanded(persisted.projectExpandedById ?? {}, ["unknown"])).toBe(true);
+  });
+});
+
+describe("project hidden state", () => {
+  it("resolveProjectHidden defaults to false when unset", () => {
+    expect(resolveProjectHidden({}, "proj-1")).toBe(false);
+    expect(resolveProjectHidden({ "proj-1": true }, "proj-1")).toBe(true);
+    expect(resolveProjectHidden({ "proj-1": false }, "proj-1")).toBe(false);
+  });
+
+  it("setProjectHidden sets and clears the flag", () => {
+    const state = makeUiState();
+    const hidden = setProjectHidden(state, "proj-1", true);
+    expect(hidden.projectHiddenById["proj-1"]).toBe(true);
+    const shown = setProjectHidden(hidden, "proj-1", false);
+    expect(shown.projectHiddenById["proj-1"]).toBe(false);
+  });
+
+  it("setProjectHidden returns the same state when unchanged", () => {
+    const state = makeUiState({ projectHiddenById: { "proj-1": true } });
+    expect(setProjectHidden(state, "proj-1", true)).toBe(state);
+  });
+
+  it("setShowHiddenProjects toggles the global flag", () => {
+    const state = makeUiState();
+    expect(setShowHiddenProjects(state, false)).toBe(state);
+    const on = setShowHiddenProjects(state, true);
+    expect(on.showHiddenProjects).toBe(true);
+  });
+
+  it("parsePersistedState round-trips and defaults the new fields", () => {
+    const parsed = parsePersistedState({
+      projectHiddenById: { "proj-1": true, "": true, bad: 1 as unknown as boolean },
+      showHiddenProjects: true,
+    } as PersistedUiState);
+    expect(parsed.projectHiddenById).toEqual({ "proj-1": true });
+    expect(parsed.showHiddenProjects).toBe(true);
+
+    const empty = parsePersistedState({} as PersistedUiState);
+    expect(empty.projectHiddenById).toEqual({});
+    expect(empty.showHiddenProjects).toBe(false);
   });
 });

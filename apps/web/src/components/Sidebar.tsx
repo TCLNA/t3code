@@ -7,6 +7,7 @@ import {
   ChevronUpIcon,
   CloudIcon,
   ContainerIcon,
+  EyeOffIcon,
   FolderPlusIcon,
   Globe2Icon,
   LoaderIcon,
@@ -104,6 +105,7 @@ import { previewEnvironment } from "../state/preview";
 import {
   legacyProjectCwdPreferenceKey,
   resolveProjectExpanded,
+  resolveProjectHidden,
   useUiStateStore,
 } from "../uiStateStore";
 import {
@@ -1153,6 +1155,10 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
   const { isMobile, setOpenMobile } = useSidebar();
   const markThreadUnread = useUiStateStore((state) => state.markThreadUnread);
   const setProjectExpanded = useUiStateStore((state) => state.setProjectExpanded);
+  const setProjectHidden = useUiStateStore((state) => state.setProjectHidden);
+  const isProjectHidden = useUiStateStore((state) =>
+    resolveProjectHidden(state.projectHiddenById, project.projectKey),
+  );
   const toggleThreadSelection = useThreadSelectionStore((state) => state.toggleThread);
   const rangeSelectTo = useThreadSelectionStore((state) => state.rangeSelectTo);
   const clearSelection = useThreadSelectionStore((state) => state.clearSelection);
@@ -1687,11 +1693,17 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
           };
         };
 
+        const toggleHiddenId = "toggle-hidden";
+        actionHandlers.set(toggleHiddenId, () => {
+          setProjectHidden(project.projectKey, !isProjectHidden);
+        });
+
         const clicked = await api.contextMenu.show(
           [
             buildTargetedItem("rename", "Rename"),
             buildTargetedItem("grouping", "Group into..."),
             buildTargetedItem("copy-path", "Copy Path"),
+            { id: toggleHiddenId, label: isProjectHidden ? "Show project" : "Hide project" },
             buildTargetedItem("delete", "Remove", {
               destructive: true,
             }),
@@ -1712,10 +1724,13 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
     [
       copyPathToClipboard,
       handleRemoveProject,
+      isProjectHidden,
       openProjectGroupingDialog,
       openProjectRenameDialog,
       project.groupedProjectCount,
       project.memberProjects,
+      project.projectKey,
+      setProjectHidden,
       suppressProjectClickForContextMenuRef,
     ],
   );
@@ -2314,6 +2329,12 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
           )}
           <ProjectFavicon environmentId={project.environmentId} cwd={project.workspaceRoot} />
           <span className="flex min-w-0 flex-1 items-center gap-2">
+            {isProjectHidden ? (
+              <EyeOffIcon
+                aria-label="Hidden project"
+                className="size-3 shrink-0 text-muted-foreground/60"
+              />
+            ) : null}
             <span className="truncate text-xs font-medium text-foreground/90">
               {project.displayName}
             </span>
@@ -2654,6 +2675,8 @@ function ProjectSortMenu({
     },
     [onThreadPreviewCountChange, threadPreviewCount],
   );
+  const showHiddenProjects = useUiStateStore((state) => state.showHiddenProjects);
+  const setShowHiddenProjects = useUiStateStore((state) => state.setShowHiddenProjects);
 
   return (
     <Menu>
@@ -2765,6 +2788,19 @@ function ProjectSortMenu({
               </MenuRadioItem>
             ))}
           </MenuRadioGroup>
+        </MenuGroup>
+        <MenuSeparator />
+        <MenuGroup>
+          <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+            <span className="font-medium text-muted-foreground sm:text-xs">
+              Show hidden projects
+            </span>
+            <Switch
+              checked={showHiddenProjects}
+              onCheckedChange={(checked) => setShowHiddenProjects(checked)}
+              aria-label="Show hidden projects"
+            />
+          </div>
         </MenuGroup>
       </MenuPopup>
     </Menu>
@@ -3291,6 +3327,8 @@ export default function Sidebar() {
   const projects = useProjects();
   const sidebarThreads = useThreadShells();
   const projectExpandedById = useUiStateStore((store) => store.projectExpandedById);
+  const projectHiddenById = useUiStateStore((store) => store.projectHiddenById);
+  const showHiddenProjects = useUiStateStore((store) => store.showHiddenProjects);
   const projectOrder = useUiStateStore((store) => store.projectOrder);
   const reorderProjects = useUiStateStore((store) => store.reorderProjects);
   const navigate = useNavigate();
@@ -3576,12 +3614,23 @@ export default function Sidebar() {
       sidebarProjectSortOrder,
     ).flatMap((project) => {
       const resolvedProject = sidebarProjectByKey.get(project.id);
-      return resolvedProject ? [resolvedProject] : [];
+      if (!resolvedProject) {
+        return [];
+      }
+      if (
+        !showHiddenProjects &&
+        resolveProjectHidden(projectHiddenById, resolvedProject.projectKey)
+      ) {
+        return [];
+      }
+      return [resolvedProject];
     });
   }, [
     sidebarProjectSortOrder,
     physicalToLogicalKey,
+    projectHiddenById,
     projectPhysicalKeyByScopedRef,
+    showHiddenProjects,
     sidebarProjectByKey,
     sidebarProjects,
     visibleThreads,
