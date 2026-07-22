@@ -36,7 +36,7 @@
 Create `apps/web/src/voice/useVoiceStore.test.ts`:
 
 ```ts
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { migrateAudioMode, nextAudioMode } from "./useVoiceStore";
 
@@ -228,7 +228,7 @@ git commit -m "feat(web): tri-state audioMode in voice store with ttsMuted migra
 Create `apps/web/src/voice/notificationBeeps.test.ts`:
 
 ```ts
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from "vite-plus/test";
 
 import { resolveNotificationBeep } from "./notificationBeeps";
 
