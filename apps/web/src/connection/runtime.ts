@@ -27,3 +27,15 @@ export const connectionAtomRuntime: Atom.AtomRuntime<
   Layer.Success<ConnectionLayerSource>,
   Layer.Error<ConnectionLayerSource>
 > = Atom.runtime(connectionLayer);
+
+if (import.meta.hot) {
+  // This module owns the connection runtime — the WebSocket supervisor, reconnect
+  // fibers, and online/visibility listeners — as a non-HMR-safe singleton. A partial
+  // Fast Refresh update would orphan the live supervisor + socket while React rebinds
+  // atoms to a fresh runtime that never reaches "connected", stranding the UI on
+  // "agent still working" forever. Force a clean full reload whenever the sync layer
+  // is hot-updated instead.
+  import.meta.hot.accept(() => {
+    import.meta.hot?.invalidate();
+  });
+}

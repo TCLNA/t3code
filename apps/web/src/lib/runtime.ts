@@ -73,3 +73,12 @@ export const runtimeContextLayer: Layer.Layer<
   Layer.Success<RuntimeLayerSource>,
   Layer.Error<RuntimeLayerSource>
 > = Layer.effectContext(runtime.contextEffect);
+
+if (import.meta.hot) {
+  // The base HTTP/socket ManagedRuntime is a non-HMR-safe singleton. A partial Fast
+  // Refresh update would leave a fresh runtime bound to React while the previous
+  // runtime's resources linger, breaking sync. Force a full reload instead.
+  import.meta.hot.accept(() => {
+    import.meta.hot?.invalidate();
+  });
+}

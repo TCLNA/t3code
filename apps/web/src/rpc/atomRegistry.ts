@@ -12,3 +12,12 @@ export function resetAppAtomRegistryForTests() {
   appAtomRegistry.dispose();
   appAtomRegistry = AtomRegistry.make();
 }
+
+if (import.meta.hot) {
+  // appAtomRegistry is a module-level singleton wired into React via context. A partial
+  // Fast Refresh update would create a new registry while the old one (and everything
+  // atomed onto it) leaks, desyncing the UI. Force a full reload instead.
+  import.meta.hot.accept(() => {
+    import.meta.hot?.invalidate();
+  });
+}

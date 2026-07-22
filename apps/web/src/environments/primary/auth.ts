@@ -546,3 +546,12 @@ export function __resetServerAuthBootstrapForTests() {
   bootstrapPromise = null;
   resolvedAuthenticatedGateState = null;
 }
+
+if (import.meta.hot) {
+  // bootstrapPromise / resolvedAuthenticatedGateState are module-level singletons that
+  // gate primary-environment auth. A partial Fast Refresh update would leave a stale
+  // bootstrap resolved against the previous connection, so force a full reload instead.
+  import.meta.hot.accept(() => {
+    import.meta.hot?.invalidate();
+  });
+}
