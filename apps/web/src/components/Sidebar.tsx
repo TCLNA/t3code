@@ -2664,6 +2664,8 @@ function ProjectSortMenu({
     },
     [onThreadPreviewCountChange, threadPreviewCount],
   );
+  const showHiddenProjects = useUiStateStore((state) => state.showHiddenProjects);
+  const setShowHiddenProjects = useUiStateStore((state) => state.setShowHiddenProjects);
 
   return (
     <Menu>
@@ -2775,6 +2777,19 @@ function ProjectSortMenu({
               </MenuRadioItem>
             ))}
           </MenuRadioGroup>
+        </MenuGroup>
+        <MenuSeparator />
+        <MenuGroup>
+          <div className="flex items-center justify-between gap-2 px-2 py-1.5">
+            <span className="font-medium text-muted-foreground sm:text-xs">
+              Show hidden projects
+            </span>
+            <Switch
+              checked={showHiddenProjects}
+              onCheckedChange={(checked) => setShowHiddenProjects(checked)}
+              aria-label="Show hidden projects"
+            />
+          </div>
         </MenuGroup>
       </MenuPopup>
     </Menu>
