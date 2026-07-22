@@ -86,7 +86,7 @@ root (it already has the full project/thread collection used to render rows):
 - On each render, for every known thread compute its label via the existing
   `resolveThreadStatusPill`, compare to the stored previous, call
   `resolveNotificationBeep(prev, next, audioMode)`, and if non-null and
-  `(!beepUnfocusedOnly || document.hidden)`, play the sound. Then store `next`.
+  `(!beepUnfocusedOnly || !document.hasFocus())`, play the sound. Then store `next`.
 - First observation of a thread seeds the map without beeping.
 - Fires regardless of which rows are mounted/visible.
 
@@ -140,7 +140,7 @@ lives in the pure module.
 
 - `localStorage` read/write wrapped in try/catch (existing pattern).
 - `audio.play()` promise rejection swallowed.
-- `document.hidden` evaluated at fire time.
+- Window focus (`document.hasFocus()`) evaluated at fire time.
 - Collapsed sidebar (icon mode): footer shows two `size-8` icons; acceptable.
 
 ## Attribution

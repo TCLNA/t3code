@@ -40,7 +40,7 @@ export function useNotificationSounds(): void {
       if (!known) continue; // seed on first observation without beeping
 
       const beep = resolveNotificationBeep(prevLabel, label, audioMode);
-      if (beep !== null && (!beepUnfocusedOnly || document.hidden)) {
+      if (beep !== null && (!beepUnfocusedOnly || !document.hasFocus())) {
         playBeep(beep);
       }
     }
