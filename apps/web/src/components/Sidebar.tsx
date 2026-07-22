@@ -1691,8 +1691,6 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
           };
         };
 
-        const isProjectHidden =
-          useUiStateStore.getState().projectHiddenById[project.projectKey] ?? false;
         const toggleHiddenId = "toggle-hidden";
         actionHandlers.set(toggleHiddenId, () => {
           setProjectHidden(project.projectKey, !isProjectHidden);
@@ -1724,6 +1722,7 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
     [
       copyPathToClipboard,
       handleRemoveProject,
+      isProjectHidden,
       openProjectGroupingDialog,
       openProjectRenameDialog,
       project.groupedProjectCount,
