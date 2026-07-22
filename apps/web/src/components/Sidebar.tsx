@@ -7,6 +7,7 @@ import {
   ChevronUpIcon,
   CloudIcon,
   ContainerIcon,
+  EyeOffIcon,
   FolderPlusIcon,
   Globe2Icon,
   LoaderIcon,
@@ -1153,6 +1154,9 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
   const markThreadUnread = useUiStateStore((state) => state.markThreadUnread);
   const setProjectExpanded = useUiStateStore((state) => state.setProjectExpanded);
   const setProjectHidden = useUiStateStore((state) => state.setProjectHidden);
+  const isProjectHidden = useUiStateStore((state) =>
+    resolveProjectHidden(state.projectHiddenById, project.projectKey),
+  );
   const toggleThreadSelection = useThreadSelectionStore((state) => state.toggleThread);
   const rangeSelectTo = useThreadSelectionStore((state) => state.rangeSelectTo);
   const clearSelection = useThreadSelectionStore((state) => state.clearSelection);
@@ -2324,6 +2328,12 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
           )}
           <ProjectFavicon environmentId={project.environmentId} cwd={project.workspaceRoot} />
           <span className="flex min-w-0 flex-1 items-center gap-2">
+            {isProjectHidden ? (
+              <EyeOffIcon
+                aria-label="Hidden project"
+                className="size-3 shrink-0 text-muted-foreground/60"
+              />
+            ) : null}
             <span className="truncate text-xs font-medium text-foreground/90">
               {project.displayName}
             </span>
