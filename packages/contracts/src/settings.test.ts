@@ -251,4 +251,17 @@ describe("SpeechSettings.kokoroEnabledVoices", () => {
     });
     expect(patch.speech?.humanizeEnabled).toBe(false);
   });
+
+  it("defaults chatterboxVoice and chatterboxVoicesDir to empty strings", () => {
+    const decoded = decodeServerSettings({});
+    expect(decoded.speech.chatterboxVoice).toBe("");
+    expect(decoded.speech.chatterboxVoicesDir).toBe("");
+  });
+  it("accepts chatterboxVoice and chatterboxVoicesDir in ServerSettingsPatch.speech", () => {
+    const patch = decodeServerSettingsPatch({
+      speech: { chatterboxVoice: "rossmann", chatterboxVoicesDir: "/voices" },
+    });
+    expect(patch.speech?.chatterboxVoice).toBe("rossmann");
+    expect(patch.speech?.chatterboxVoicesDir).toBe("/voices");
+  });
 });

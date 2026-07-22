@@ -88,7 +88,6 @@ export const ClientSettingsSchema = Schema.Struct({
   sidebarThreadPreviewCount: SidebarThreadPreviewCount.pipe(
     Schema.withDecodingDefault(Effect.succeed(DEFAULT_SIDEBAR_THREAD_PREVIEW_COUNT)),
   ),
-  simplifiedMobileView: Schema.Boolean.pipe(Schema.withDecodingDefault(Effect.succeed(false))),
   timestampFormat: TimestampFormat.pipe(
     Schema.withDecodingDefault(Effect.succeed(DEFAULT_TIMESTAMP_FORMAT)),
   ),
@@ -485,6 +484,25 @@ export const SpeechSettings = makeProviderSettingsSchema(
         },
       }),
     ),
+    chatterboxVoice: TrimmedString.pipe(
+      Schema.withDecodingDefault(Effect.succeed("")),
+      Schema.annotateKey({
+        title: "Chatterbox voice",
+        description: "Selected Chatterbox voice (reference-clip name in the voices folder).",
+        providerSettingsForm: { placeholder: "rossmann", clearWhenEmpty: "omit" },
+      }),
+    ),
+    chatterboxVoicesDir: TrimmedString.pipe(
+      Schema.withDecodingDefault(Effect.succeed("")),
+      Schema.annotateKey({
+        title: "Chatterbox voices directory",
+        description: "Directory scanned for Chatterbox voice reference clips (*.wav).",
+        providerSettingsForm: {
+          placeholder: "/path/to/voices",
+          clearWhenEmpty: "omit",
+        },
+      }),
+    ),
     kokoroModelPath: TrimmedString.pipe(
       Schema.withDecodingDefault(Effect.succeed("")),
       Schema.annotateKey({
@@ -520,6 +538,8 @@ export const SpeechSettings = makeProviderSettingsSchema(
       "kokoroModelPath",
       "kokoroVoice",
       "kokoroEnabledVoices",
+      "chatterboxVoice",
+      "chatterboxVoicesDir",
     ],
   },
 );
@@ -690,6 +710,8 @@ export const ServerSettingsPatch = Schema.Struct({
       humanizeEnabled: Schema.optionalKey(Schema.Boolean),
       ttsEngine: Schema.optionalKey(Schema.Literals(["kokoro", "chatterbox"])),
       chatterboxCommand: Schema.optionalKey(TrimmedString),
+      chatterboxVoice: Schema.optionalKey(TrimmedString),
+      chatterboxVoicesDir: Schema.optionalKey(TrimmedString),
       whisperBinaryPath: Schema.optionalKey(TrimmedString),
       whisperModelPath: Schema.optionalKey(TrimmedString),
       kokoroCommand: Schema.optionalKey(TrimmedString),
@@ -754,7 +776,6 @@ export const ClientSettingsPatch = Schema.Struct({
   sidebarProjectSortOrder: Schema.optionalKey(SidebarProjectSortOrder),
   sidebarThreadSortOrder: Schema.optionalKey(SidebarThreadSortOrder),
   sidebarThreadPreviewCount: Schema.optionalKey(SidebarThreadPreviewCount),
-  simplifiedMobileView: Schema.optionalKey(Schema.Boolean),
   timestampFormat: Schema.optionalKey(TimestampFormat),
   wordWrap: Schema.optionalKey(Schema.Boolean),
 });
