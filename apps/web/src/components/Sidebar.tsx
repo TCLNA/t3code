@@ -1,8 +1,10 @@
 import {
   ArchiveIcon,
   ArrowUpDownIcon,
+  BellIcon,
   CheckIcon,
   ChevronRightIcon,
+  ChevronUpIcon,
   CloudIcon,
   ContainerIcon,
   FolderPlusIcon,
@@ -221,6 +223,7 @@ import {
   useUpdatePrimarySettings,
 } from "~/hooks/useSettings";
 import { useVoiceStore } from "~/voice/useVoiceStore";
+import { useNotificationSounds } from "~/voice/useNotificationSounds";
 import {
   primaryServerConfigAtom,
   primaryServerKeybindingsAtom,
@@ -2803,14 +2806,37 @@ function SortableProjectItem({
   );
 }
 
+function SidebarAudioModeButton() {
+  const audioMode = useVoiceStore((s) => s.audioMode);
+  const cycleAudioMode = useVoiceStore((s) => s.cycleAudioMode);
+
+  const { Icon, label } =
+    audioMode === "all"
+      ? { Icon: Volume2Icon, label: "All sounds" }
+      : audioMode === "notify"
+        ? { Icon: BellIcon, label: "Notifications only" }
+        : { Icon: VolumeXIcon, label: "No sound" };
+
+  return (
+    <button
+      type="button"
+      title={`Audio: ${label} (click to change)`}
+      aria-label={`Audio: ${label} (click to change)`}
+      onClick={() => cycleAudioMode()}
+      className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-accent hover:text-foreground"
+    >
+      <Icon className="size-4" />
+    </button>
+  );
+}
+
 function SidebarVoiceDropdown() {
   const settings = useAtomValue(primaryServerSettingsAtom);
   const updateSettings = useUpdatePrimarySettings();
-  const ttsMuted = useVoiceStore((s) => s.ttsMuted);
-  const toggleTtsMuted = useVoiceStore((s) => s.toggleTtsMuted);
+  const beepUnfocusedOnly = useVoiceStore((s) => s.beepUnfocusedOnly);
+  const setBeepUnfocusedOnly = useVoiceStore((s) => s.setBeepUnfocusedOnly);
 
-  if (!settings.speech.ttsEnabled) return null;
-
+  const ttsEnabled = settings.speech.ttsEnabled;
   const enabledVoices = settings.speech.kokoroEnabledVoices ?? [...KOKORO_VOICES];
   const activeVoice = settings.speech.kokoroVoice || DEFAULT_KOKORO_VOICE;
 
@@ -2818,21 +2844,22 @@ function SidebarVoiceDropdown() {
     <Popover>
       <PopoverTrigger
         className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-accent hover:text-foreground"
-        aria-label="Voice options"
+        aria-label="Audio options"
       >
-        {ttsMuted ? <VolumeXIcon className="size-4" /> : <Volume2Icon className="size-4" />}
+        <ChevronUpIcon className="size-4" />
       </PopoverTrigger>
       <PopoverPopup side="top" align="end" sideOffset={8} viewportClassName="py-2">
         <div className="flex items-center justify-between gap-4 px-1">
-          <span className="text-sm font-medium">Text-to-speech</span>
+          <span className="text-sm font-medium">Only beep when unfocused</span>
           <Switch
-            checked={!ttsMuted}
-            onCheckedChange={() => toggleTtsMuted()}
-            aria-label="Toggle text-to-speech mute"
+            checked={beepUnfocusedOnly}
+            onCheckedChange={(checked) => setBeepUnfocusedOnly(checked)}
+            aria-label="Only beep when the app is unfocused"
           />
         </div>
-        {enabledVoices.length > 0 && (
+        {ttsEnabled && enabledVoices.length > 0 && (
           <div className="mt-2 flex flex-col border-t border-border pt-2">
+            <span className="px-1 pb-1 text-xs text-muted-foreground">Voice</span>
             {enabledVoices.map((voice) => (
               <button
                 key={voice}
@@ -2960,6 +2987,7 @@ const SidebarChromeFooter = memo(function SidebarChromeFooter() {
             <SettingsIcon className="size-3.5" />
             <span className="text-xs">Settings</span>
           </SidebarMenuButton>
+          <SidebarAudioModeButton />
           <SidebarVoiceDropdown />
         </SidebarMenuItem>
       </SidebarMenu>
@@ -3239,6 +3267,7 @@ const SidebarProjectsContent = memo(function SidebarProjectsContent(
 });
 
 export default function Sidebar() {
+  useNotificationSounds();
   const projects = useProjects();
   const sidebarThreads = useThreadShells();
   const projectExpandedById = useUiStateStore((store) => store.projectExpandedById);

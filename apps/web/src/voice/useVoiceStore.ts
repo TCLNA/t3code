@@ -80,8 +80,6 @@ interface VoiceStoreState {
   toggleRecording: () => void;
   setAudioMode: (mode: AudioMode) => void;
   cycleAudioMode: () => void;
-  /** Legacy TTS mute toggle (temporary — removed when the sidebar UI is reworked). Muting keeps beeps by moving to "notify"; unmuting moves to "all". */
-  toggleTtsMuted: () => void;
   setBeepUnfocusedOnly: (value: boolean) => void;
   setError: (error: string | null) => void;
 }
@@ -104,12 +102,6 @@ export const useVoiceStore = create<VoiceStoreState>((set) => {
     cycleAudioMode: () =>
       set((state) => {
         const audioMode = nextAudioMode(state.audioMode);
-        writeAudioMode(audioMode);
-        return { audioMode, ttsMuted: audioMode !== "all" };
-      }),
-    toggleTtsMuted: () =>
-      set((state) => {
-        const audioMode: AudioMode = state.ttsMuted ? "all" : "notify";
         writeAudioMode(audioMode);
         return { audioMode, ttsMuted: audioMode !== "all" };
       }),
