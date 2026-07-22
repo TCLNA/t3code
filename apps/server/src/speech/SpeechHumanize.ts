@@ -32,6 +32,9 @@ Rules:
     <- is usually "from"
     --> is usually "then" or "leading to"
     A neutral pause (comma) is acceptable if no word fits naturally
+- Durations, times, and units — read as spoken words in context:
+    "10s" → "ten seconds", "500ms" → "five hundred milliseconds", "2h" → "two hours", "3x" → "three times", "5GB" → "five gigabytes"
+    But leave decade and plural forms alone: "the 90s" → "the nineties", "URLs" → "urls", "IDs" → "eye dees"
 - Leave all other prose unchanged`;
 
 export class SpeechHumanize extends Context.Service<
