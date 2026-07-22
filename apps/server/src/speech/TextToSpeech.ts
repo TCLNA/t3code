@@ -42,16 +42,44 @@ export class TextToSpeech extends Context.Service<
   }
 >()("t3/speech/TextToSpeech") {}
 
-const resolveConfigValue = (value: string | undefined, envKey: string): string => {
+const resolveConfigValue = (
+  value: string | undefined,
+  envKey: string,
+  env: Record<string, string | undefined> = process.env,
+): string => {
   const trimmed = value?.trim();
   if (trimmed) return trimmed;
-  const fromEnv = process.env[envKey]?.trim();
+  const fromEnv = env[envKey]?.trim();
   return fromEnv ?? "";
 };
 
+export interface TtsCommandInputs {
+  readonly ttsEngine?: "kokoro" | "chatterbox" | undefined;
+  readonly kokoroCommand?: string | undefined;
+  readonly chatterboxCommand?: string | undefined;
+}
+
+/** Pick the TTS command + env fallback for the configured engine. */
+export const resolveTtsCommand = (
+  speech: TtsCommandInputs,
+  env: Record<string, string | undefined> = process.env,
+): { readonly engine: "kokoro" | "chatterbox"; readonly command: string } => {
+  const engine = speech.ttsEngine ?? "kokoro";
+  const command =
+    engine === "chatterbox"
+      ? resolveConfigValue(speech.chatterboxCommand, "T3_CHATTERBOX_CMD", env)
+      : resolveConfigValue(speech.kokoroCommand, "T3_KOKORO_CMD", env);
+  return { engine, command };
+};
+
 /** Split a configured command string into an executable and leading args. */
-const splitCommand = (command: string): { readonly executable: string; readonly preArgs: string[] } => {
-  const parts = command.trim().split(/\s+/).filter((part) => part.length > 0);
+const splitCommand = (
+  command: string,
+): { readonly executable: string; readonly preArgs: string[] } => {
+  const parts = command
+    .trim()
+    .split(/\s+/)
+    .filter((part) => part.length > 0);
   const [executable, ...preArgs] = parts;
   return { executable: executable ?? "", preArgs };
 };
@@ -85,19 +113,21 @@ export const make = Effect.gen(function* () {
           );
         }
 
-        const command = resolveConfigValue(speech.kokoroCommand, "T3_KOKORO_CMD");
+        const { engine, command } = resolveTtsCommand(speech);
         if (!command) {
           return yield* Effect.fail(
             new TextToSpeechError({
               reason: "binary-missing",
-              detail: "No Kokoro command configured.",
+              detail: `No ${engine} command configured.`,
             }),
           );
         }
 
         const model = resolveConfigValue(speech.kokoroModelPath, "T3_KOKORO_MODEL");
         const voice =
-          input.voice?.trim() || resolveConfigValue(speech.kokoroVoice, "T3_KOKORO_VOICE") || "af_heart";
+          input.voice?.trim() ||
+          resolveConfigValue(speech.kokoroVoice, "T3_KOKORO_VOICE") ||
+          "af_heart";
 
         const dir = yield* fs.makeTempDirectoryScoped({ prefix: "t3-tts-" }).pipe(
           Effect.mapError(
