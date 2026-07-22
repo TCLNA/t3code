@@ -2817,12 +2817,12 @@ function SidebarVoiceDropdown() {
   return (
     <Popover>
       <PopoverTrigger
-        className="ml-auto flex size-8 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:text-foreground/80"
+        className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-accent hover:text-foreground"
         aria-label="Voice options"
       >
         {ttsMuted ? <VolumeXIcon className="size-4" /> : <Volume2Icon className="size-4" />}
       </PopoverTrigger>
-      <PopoverPopup side="bottom" align="end" sideOffset={8} viewportClassName="py-2">
+      <PopoverPopup side="top" align="end" sideOffset={8} viewportClassName="py-2">
         <div className="flex items-center justify-between gap-4 px-1">
           <span className="text-sm font-medium">Text-to-speech</span>
           <Switch
@@ -2883,7 +2883,6 @@ const SidebarChromeHeader = memo(function SidebarChromeHeader({
         )}
       />
       <SidebarBrand onBackdrop={backdropVariant !== null} />
-      <SidebarVoiceDropdown />
     </SidebarHeader>
   );
 });
@@ -2952,15 +2951,16 @@ const SidebarChromeFooter = memo(function SidebarChromeFooter() {
       <SidebarProviderUpdatePill />
       <SidebarUpdatePill />
       <SidebarMenu>
-        <SidebarMenuItem>
+        <SidebarMenuItem className="flex items-center gap-1">
           <SidebarMenuButton
             size="sm"
-            className="gap-2 px-2 py-1.5 text-muted-foreground/70 hover:bg-accent hover:text-foreground"
+            className="flex-1 gap-2 px-2 py-1.5 text-muted-foreground/70 hover:bg-accent hover:text-foreground"
             onClick={handleSettingsClick}
           >
             <SettingsIcon className="size-3.5" />
             <span className="text-xs">Settings</span>
           </SidebarMenuButton>
+          <SidebarVoiceDropdown />
         </SidebarMenuItem>
       </SidebarMenu>
     </SidebarFooter>
