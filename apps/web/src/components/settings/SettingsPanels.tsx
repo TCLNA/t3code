@@ -65,6 +65,8 @@ import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import { DraftInput } from "../ui/draft-input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
+import { TtsEngineSelect } from "../voice/TtsEngineSelect";
+import { CHATTERBOX_VOICE_NOTE, shouldShowKokoroVoices } from "../voice/ttsEngine";
 import { Switch } from "../ui/switch";
 import { stackedThreadToast, toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
@@ -1053,47 +1055,65 @@ export function GeneralSettingsPanel() {
 
       {settings.speech.ttsEnabled && (
         <SettingsSection title="Voice">
-          <div className="px-4 py-3.5 sm:px-5">
-            <p className="mb-3 text-[13px] font-semibold tracking-[-0.01em] text-foreground">
-              Available voices
-            </p>
-            <div className="flex flex-col gap-2">
-              {KOKORO_VOICES.map((voice) => {
-                const enabledVoices = settings.speech.kokoroEnabledVoices ?? [...KOKORO_VOICES];
-                const isChecked = enabledVoices.includes(voice);
-                const isLastEnabled = isChecked && enabledVoices.length === 1;
-                return (
-                  <label
-                    key={voice}
-                    className="flex cursor-pointer items-center gap-2.5 text-sm text-foreground"
-                  >
-                    <Checkbox
-                      checked={isChecked}
-                      disabled={isLastEnabled}
-                      onCheckedChange={(checked) => {
-                        const current = settings.speech.kokoroEnabledVoices ?? [...KOKORO_VOICES];
-                        const next =
-                          checked === true
-                            ? [...current, voice]
-                            : current.filter((v) => v !== voice);
-                        const speechPatch: {
-                          kokoroEnabledVoices: string[];
-                          kokoroVoice?: string;
-                        } = { kokoroEnabledVoices: next };
-                        if (checked !== true && settings.speech.kokoroVoice === voice) {
-                          speechPatch.kokoroVoice = next[0] ?? DEFAULT_KOKORO_VOICE;
-                        }
-                        updateSettings({
-                          speech: { ...settings.speech, ...speechPatch },
-                        });
-                      }}
-                    />
-                    {voice}
-                  </label>
-                );
-              })}
+          <SettingsRow
+            title="TTS engine"
+            description="Which local text-to-speech engine to use."
+            control={
+              <TtsEngineSelect
+                value={settings.speech.ttsEngine ?? "kokoro"}
+                onChange={(engine) =>
+                  updateSettings({ speech: { ...settings.speech, ttsEngine: engine } })
+                }
+              />
+            }
+          />
+          {shouldShowKokoroVoices(settings.speech.ttsEngine) ? (
+            <div className="px-4 py-3.5 sm:px-5">
+              <p className="mb-3 text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+                Available voices
+              </p>
+              <div className="flex flex-col gap-2">
+                {KOKORO_VOICES.map((voice) => {
+                  const enabledVoices = settings.speech.kokoroEnabledVoices ?? [...KOKORO_VOICES];
+                  const isChecked = enabledVoices.includes(voice);
+                  const isLastEnabled = isChecked && enabledVoices.length === 1;
+                  return (
+                    <label
+                      key={voice}
+                      className="flex cursor-pointer items-center gap-2.5 text-sm text-foreground"
+                    >
+                      <Checkbox
+                        checked={isChecked}
+                        disabled={isLastEnabled}
+                        onCheckedChange={(checked) => {
+                          const current = settings.speech.kokoroEnabledVoices ?? [...KOKORO_VOICES];
+                          const next =
+                            checked === true
+                              ? [...current, voice]
+                              : current.filter((v) => v !== voice);
+                          const speechPatch: {
+                            kokoroEnabledVoices: string[];
+                            kokoroVoice?: string;
+                          } = { kokoroEnabledVoices: next };
+                          if (checked !== true && settings.speech.kokoroVoice === voice) {
+                            speechPatch.kokoroVoice = next[0] ?? DEFAULT_KOKORO_VOICE;
+                          }
+                          updateSettings({
+                            speech: { ...settings.speech, ...speechPatch },
+                          });
+                        }}
+                      />
+                      {voice}
+                    </label>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="px-4 py-3.5 sm:px-5">
+              <p className="text-sm text-muted-foreground">{CHATTERBOX_VOICE_NOTE}</p>
+            </div>
+          )}
         </SettingsSection>
       )}
     </SettingsPageContainer>

@@ -27,6 +27,8 @@ import {
   ThreadWorktreeIndicator,
 } from "./ThreadStatusIndicators";
 import { ProjectFavicon } from "./ProjectFavicon";
+import { TtsEngineSelect } from "./voice/TtsEngineSelect";
+import { CHATTERBOX_VOICE_NOTE, shouldShowKokoroVoices } from "./voice/ttsEngine";
 import { useAtomValue } from "@effect/atom-react";
 import { autoAnimate } from "@formkit/auto-animate";
 import React, { useCallback, useEffect, memo, useMemo, useRef, useState } from "react";
@@ -2839,6 +2841,7 @@ function SidebarVoiceDropdown() {
   const ttsEnabled = settings.speech.ttsEnabled;
   const enabledVoices = settings.speech.kokoroEnabledVoices ?? [...KOKORO_VOICES];
   const activeVoice = settings.speech.kokoroVoice || DEFAULT_KOKORO_VOICE;
+  const ttsEngine = settings.speech.ttsEngine ?? "kokoro";
 
   return (
     <Popover>
@@ -2857,7 +2860,24 @@ function SidebarVoiceDropdown() {
             aria-label="Only beep when the app is unfocused"
           />
         </div>
-        {ttsEnabled && enabledVoices.length > 0 && (
+        {ttsEnabled && (
+          <div className="mt-2 flex items-center justify-between gap-4 border-t border-border px-1 pt-2">
+            <span className="text-sm font-medium">TTS engine</span>
+            <TtsEngineSelect
+              value={ttsEngine}
+              onChange={(engine) =>
+                updateSettings({ speech: { ...settings.speech, ttsEngine: engine } })
+              }
+              triggerClassName="w-32"
+            />
+          </div>
+        )}
+        {ttsEnabled && !shouldShowKokoroVoices(ttsEngine) && (
+          <p className="mt-2 border-t border-border px-1 pt-2 text-xs text-muted-foreground">
+            {CHATTERBOX_VOICE_NOTE}
+          </p>
+        )}
+        {ttsEnabled && shouldShowKokoroVoices(ttsEngine) && enabledVoices.length > 0 && (
           <div className="mt-2 flex flex-col border-t border-border pt-2">
             <span className="px-1 pb-1 text-xs text-muted-foreground">Voice</span>
             {enabledVoices.map((voice) => (
