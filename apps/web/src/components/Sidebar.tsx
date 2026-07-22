@@ -1152,6 +1152,7 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
   const { isMobile, setOpenMobile } = useSidebar();
   const markThreadUnread = useUiStateStore((state) => state.markThreadUnread);
   const setProjectExpanded = useUiStateStore((state) => state.setProjectExpanded);
+  const setProjectHidden = useUiStateStore((state) => state.setProjectHidden);
   const toggleThreadSelection = useThreadSelectionStore((state) => state.toggleThread);
   const rangeSelectTo = useThreadSelectionStore((state) => state.rangeSelectTo);
   const clearSelection = useThreadSelectionStore((state) => state.clearSelection);
@@ -1686,11 +1687,19 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
           };
         };
 
+        const isProjectHidden =
+          useUiStateStore.getState().projectHiddenById[project.projectKey] ?? false;
+        const toggleHiddenId = "toggle-hidden";
+        actionHandlers.set(toggleHiddenId, () => {
+          setProjectHidden(project.projectKey, !isProjectHidden);
+        });
+
         const clicked = await api.contextMenu.show(
           [
             buildTargetedItem("rename", "Rename"),
             buildTargetedItem("grouping", "Group into..."),
             buildTargetedItem("copy-path", "Copy Path"),
+            { id: toggleHiddenId, label: isProjectHidden ? "Show project" : "Hide project" },
             buildTargetedItem("delete", "Remove", {
               destructive: true,
             }),
@@ -1715,6 +1724,8 @@ const SidebarProjectItem = memo(function SidebarProjectItem(props: SidebarProjec
       openProjectRenameDialog,
       project.groupedProjectCount,
       project.memberProjects,
+      project.projectKey,
+      setProjectHidden,
       suppressProjectClickForContextMenuRef,
     ],
   );
