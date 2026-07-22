@@ -1104,6 +1104,15 @@ function ChatViewContent(props: ChatViewProps) {
   const updateThreadMetadata = useAtomCommand(threadEnvironment.updateMetadata, {
     reportFailure: false,
   });
+  const renameThread = useCallback(
+    async (input: { environmentId: EnvironmentId; threadId: ThreadId; title: string }) => {
+      await updateThreadMetadata({
+        environmentId: input.environmentId,
+        input: { threadId: input.threadId, title: input.title },
+      });
+    },
+    [updateThreadMetadata],
+  );
   const setThreadRuntimeMode = useAtomCommand(threadEnvironment.setRuntimeMode, {
     reportFailure: false,
   });
@@ -5229,6 +5238,7 @@ function ChatViewContent(props: ChatViewProps) {
             activeThreadId={activeThread.id}
             {...(routeKind === "draft" && draftId ? { draftId } : {})}
             activeThreadTitle={activeThread.title}
+            onRenameThread={renameThread}
             activeProjectName={activeProject?.title}
             openInCwd={gitCwd}
             activeProjectScripts={activeProject?.scripts}
