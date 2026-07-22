@@ -7,7 +7,7 @@ import { useThreadMessages } from "~/state/entities";
 import { primaryServerSettingsAtom } from "~/state/server";
 import { resolveThreadRouteTarget } from "~/threadRoutes";
 
-import { humanizeForSpeech } from "./humanizeSpeech";
+import { prepareForSpeech } from "./humanizeSpeech";
 import { TtsPlaybackController } from "./ttsPlayback";
 import { useVoiceStore } from "./useVoiceStore";
 
@@ -90,7 +90,7 @@ export function VoiceTtsProvider({ children }: { children: React.ReactNode }) {
       const unit = units[i]!;
       const idx = playback.nextIndex();
       const epoch = stopEpochRef.current;
-      humanizeForSpeech(unit).then((humanized) => {
+      prepareForSpeech(unit, speechRef.current.humanizeEnabled).then((humanized) => {
         if (stopEpochRef.current !== epoch) return;
         playback.enqueue(idx, humanized);
       });
@@ -102,7 +102,7 @@ export function VoiceTtsProvider({ children }: { children: React.ReactNode }) {
       if (tail.length > 0) {
         const idx = playback.nextIndex();
         const epoch = stopEpochRef.current;
-        humanizeForSpeech(tail).then((humanized) => {
+        prepareForSpeech(tail, speechRef.current.humanizeEnabled).then((humanized) => {
           if (stopEpochRef.current !== epoch) return;
           playback.enqueue(idx, humanized);
         });
@@ -138,7 +138,7 @@ export function VoiceTtsProvider({ children }: { children: React.ReactNode }) {
         const speakEpoch = stopEpochRef.current;
         for (const part of parts) {
           const idx = playback.nextIndex();
-          humanizeForSpeech(part).then((humanized) => {
+          prepareForSpeech(part, speechRef.current.humanizeEnabled).then((humanized) => {
             if (stopEpochRef.current !== speakEpoch) return;
             playback.enqueue(idx, humanized);
           });
