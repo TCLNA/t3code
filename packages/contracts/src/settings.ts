@@ -430,6 +430,13 @@ export const SpeechSettings = makeProviderSettingsSchema(
         providerSettingsForm: { control: "switch" },
       }),
     ),
+    ttsEngine: Schema.Literals(["kokoro", "chatterbox"]).pipe(
+      Schema.withDecodingDefault(Effect.succeed("kokoro")),
+      Schema.annotateKey({
+        title: "TTS engine",
+        description: "Which local text-to-speech engine to use.",
+      }),
+    ),
     whisperBinaryPath: makeBinaryPathSetting("whisper-cli").pipe(
       Schema.annotateKey({
         title: "whisper.cpp binary path",
@@ -453,6 +460,18 @@ export const SpeechSettings = makeProviderSettingsSchema(
           "Command (or adapter script path) that reads text on stdin and writes a WAV to the output path argument.",
         providerSettingsForm: {
           placeholder: "python /path/to/kokoro_adapter.py",
+          clearWhenEmpty: "omit",
+        },
+      }),
+    ),
+    chatterboxCommand: TrimmedString.pipe(
+      Schema.withDecodingDefault(Effect.succeed("")),
+      Schema.annotateKey({
+        title: "Chatterbox command",
+        description:
+          "Command (or wrapper script path) for the Chatterbox engine; same stdin/WAV contract as the Kokoro command.",
+        providerSettingsForm: {
+          placeholder: "/path/to/tts-wrapper-chatterbox.sh",
           clearWhenEmpty: "omit",
         },
       }),
@@ -658,6 +677,8 @@ export const ServerSettingsPatch = Schema.Struct({
     Schema.Struct({
       sttEnabled: Schema.optionalKey(Schema.Boolean),
       ttsEnabled: Schema.optionalKey(Schema.Boolean),
+      ttsEngine: Schema.optionalKey(Schema.Literals(["kokoro", "chatterbox"])),
+      chatterboxCommand: Schema.optionalKey(TrimmedString),
       whisperBinaryPath: Schema.optionalKey(TrimmedString),
       whisperModelPath: Schema.optionalKey(TrimmedString),
       kokoroCommand: Schema.optionalKey(TrimmedString),

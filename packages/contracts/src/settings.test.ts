@@ -216,4 +216,24 @@ describe("SpeechSettings.kokoroEnabledVoices", () => {
   it("KOKORO_VOICES contains DEFAULT_KOKORO_VOICE", () => {
     expect(KOKORO_VOICES).toContain(DEFAULT_KOKORO_VOICE);
   });
+
+  it("defaults ttsEngine to kokoro when absent", () => {
+    const decoded = decodeServerSettings({});
+    expect(decoded.speech.ttsEngine).toBe("kokoro");
+  });
+  it("defaults chatterboxCommand to empty string when absent", () => {
+    const decoded = decodeServerSettings({});
+    expect(decoded.speech.chatterboxCommand).toBe("");
+  });
+  it("decodes an explicit chatterbox engine", () => {
+    const decoded = decodeServerSettings({ speech: { ttsEngine: "chatterbox" } });
+    expect(decoded.speech.ttsEngine).toBe("chatterbox");
+  });
+  it("accepts ttsEngine and chatterboxCommand in ServerSettingsPatch.speech", () => {
+    const patch = decodeServerSettingsPatch({
+      speech: { ttsEngine: "chatterbox", chatterboxCommand: "/opt/cb.sh" },
+    });
+    expect(patch.speech?.ttsEngine).toBe("chatterbox");
+    expect(patch.speech?.chatterboxCommand).toBe("/opt/cb.sh");
+  });
 });
