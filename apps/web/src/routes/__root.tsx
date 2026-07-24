@@ -4,7 +4,6 @@ import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime"
 import {
   Outlet,
   createRootRoute,
-  retainSearchParams,
   type ErrorComponentProps,
   useLocation,
   useNavigate,
@@ -53,11 +52,6 @@ import {
   createKeybindingsUpdateToastController,
   type KeybindingsUpdateToastController,
 } from "../components/KeybindingsUpdateToast.logic";
-import { SimplifiedLayout } from "../components/simplified/SimplifiedLayout";
-import {
-  parseSimplifiedSearch,
-  useSimplifiedMode,
-} from "../components/simplified/useSimplifiedMode";
 
 export const Route = createRootRoute({
   beforeLoad: async ({ location }) => {
@@ -87,20 +81,12 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [{ name: "title", content: APP_DISPLAY_NAME }],
   }),
-  validateSearch: (search: Record<string, unknown>): { simplified?: boolean | undefined } => {
-    const simplified = parseSimplifiedSearch(search.simplified);
-    return simplified === undefined ? {} : { simplified };
-  },
-  search: {
-    middlewares: [retainSearchParams(["simplified"])],
-  },
 });
 
 function RootRouteView() {
   const pathname = useLocation({ select: (location) => location.pathname });
   const { authGateState } = Route.useRouteContext();
   const primaryEnvironmentAuthenticated = authGateState.status === "authenticated";
-  const simplified = useSimplifiedMode();
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -129,13 +115,7 @@ function RootRouteView() {
     );
   }
 
-  const appShell = simplified ? (
-    <CommandPalette>
-      <SimplifiedLayout>
-        <Outlet />
-      </SimplifiedLayout>
-    </CommandPalette>
-  ) : (
+  const appShell = (
     <CommandPalette>
       <AppSidebarLayout>
         <Outlet />

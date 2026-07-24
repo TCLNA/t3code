@@ -5,8 +5,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useOpenAddProjectCommandPalette } from "../commandPaletteContext";
 import { sortScopedProjectsForSidebar } from "../components/Sidebar.logic";
-import SessionsHomeScreen from "../components/simplified/SessionsHomeScreen";
-import { useSimplifiedMode } from "../components/simplified/useSimplifiedMode";
 import { Button } from "../components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "../components/ui/empty";
 import { SidebarInset } from "../components/ui/sidebar";
@@ -25,11 +23,6 @@ import { COLLAPSED_SIDEBAR_TITLEBAR_INSET_CLASS } from "~/workspaceTitlebar";
 function ChatIndexRouteView() {
   const { authGateState } = Route.useRouteContext();
   const { environments } = useEnvironments();
-  const simplified = useSimplifiedMode();
-
-  if (simplified) {
-    return <SessionsHomeScreen />;
-  }
 
   if (authGateState.status === "hosted-static" && environments.length === 0) {
     return <HostedStaticOnboardingState />;

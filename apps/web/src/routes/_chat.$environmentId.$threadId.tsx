@@ -3,8 +3,6 @@ import { useEffect } from "react";
 
 import ChatView from "../components/ChatView";
 import { threadHasStarted } from "../components/ChatView.logic";
-import SimplifiedThreadScreen from "../components/simplified/SimplifiedThreadScreen";
-import { useSimplifiedMode } from "../components/simplified/useSimplifiedMode";
 import { finalizePromotedDraftThreadByRef, useComposerDraftStore } from "../composerDraftStore";
 import { resolveThreadRouteRef } from "../threadRoutes";
 import { SidebarInset } from "~/components/ui/sidebar";
@@ -41,7 +39,6 @@ function ChatThreadRouteView() {
   const routeThreadExists = threadExists || draftThreadExists;
   const serverThreadStarted = threadHasStarted(serverThreadDetail);
   const environmentHasAnyThreads = environmentHasServerThreads || environmentHasDraftThreads;
-  const simplified = useSimplifiedMode();
 
   useEffect(() => {
     if (!threadRef || !bootstrapComplete) {
@@ -62,10 +59,6 @@ function ChatThreadRouteView() {
 
   if (!threadRef || !bootstrapComplete || !routeThreadExists) {
     return null;
-  }
-
-  if (simplified) {
-    return <SimplifiedThreadScreen threadRef={threadRef} />;
   }
 
   return (
