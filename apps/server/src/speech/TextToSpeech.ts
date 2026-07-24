@@ -72,6 +72,27 @@ export const resolveTtsCommand = (
   return { engine, command };
 };
 
+export interface TtsVoiceInputs {
+  readonly kokoroVoice?: string | undefined;
+  readonly chatterboxVoice?: string | undefined;
+}
+
+/** Pick the synth voice for the engine. Empty is valid for chatterbox
+ *  (adapter uses its built-in default); kokoro keeps the af_heart default. */
+export const resolveTtsVoice = (
+  engine: "kokoro" | "chatterbox",
+  requestedVoice: string | undefined,
+  speech: TtsVoiceInputs,
+  env: Record<string, string | undefined> = process.env,
+): string => {
+  const requested = requestedVoice?.trim();
+  if (requested) return requested;
+  if (engine === "chatterbox") {
+    return resolveConfigValue(speech.chatterboxVoice, "T3_CHATTERBOX_VOICE", env);
+  }
+  return resolveConfigValue(speech.kokoroVoice, "T3_KOKORO_VOICE", env) || "af_heart";
+};
+
 /** Split a configured command string into an executable and leading args. */
 const splitCommand = (
   command: string,
@@ -124,10 +145,7 @@ export const make = Effect.gen(function* () {
         }
 
         const model = resolveConfigValue(speech.kokoroModelPath, "T3_KOKORO_MODEL");
-        const voice =
-          input.voice?.trim() ||
-          resolveConfigValue(speech.kokoroVoice, "T3_KOKORO_VOICE") ||
-          "af_heart";
+        const voice = resolveTtsVoice(engine, input.voice, speech);
 
         const dir = yield* fs.makeTempDirectoryScoped({ prefix: "t3-tts-" }).pipe(
           Effect.mapError(

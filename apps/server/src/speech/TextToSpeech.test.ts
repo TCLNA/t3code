@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { resolveTtsCommand } from "./TextToSpeech.ts";
+import { resolveTtsCommand, resolveTtsVoice } from "./TextToSpeech.ts";
 
 describe("resolveTtsCommand", () => {
   it("defaults to the kokoro command when engine is unset", () => {
@@ -21,5 +21,24 @@ describe("resolveTtsCommand", () => {
   it("returns an empty command when nothing is configured", () => {
     const r = resolveTtsCommand({ ttsEngine: "chatterbox" }, {});
     expect(r.command).toBe("");
+  });
+});
+
+describe("resolveTtsVoice", () => {
+  it("kokoro uses kokoroVoice then falls back to af_heart", () => {
+    expect(resolveTtsVoice("kokoro", undefined, { kokoroVoice: "af_nova" }, {})).toBe("af_nova");
+    expect(resolveTtsVoice("kokoro", undefined, {}, {})).toBe("af_heart");
+  });
+  it("chatterbox uses chatterboxVoice with NO af_heart fallback", () => {
+    expect(resolveTtsVoice("chatterbox", undefined, { chatterboxVoice: "rossmann" }, {})).toBe(
+      "rossmann",
+    );
+    expect(resolveTtsVoice("chatterbox", undefined, {}, {})).toBe("");
+  });
+  it("an explicit requested voice wins for both engines", () => {
+    expect(resolveTtsVoice("chatterbox", "custom", { chatterboxVoice: "rossmann" }, {})).toBe(
+      "custom",
+    );
+    expect(resolveTtsVoice("kokoro", "custom", { kokoroVoice: "af_nova" }, {})).toBe("custom");
   });
 });
