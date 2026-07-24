@@ -81,6 +81,7 @@ import * as ProviderMaintenanceRunner from "./provider/providerMaintenanceRunner
 import * as ServerLifecycleEvents from "./serverLifecycleEvents.ts";
 import * as ServerRuntimeStartup from "./serverRuntimeStartup.ts";
 import * as ServerSettings from "./serverSettings.ts";
+import { scanChatterboxVoices } from "./speech/chatterboxVoices.ts";
 import * as TerminalManager from "./terminal/Manager.ts";
 import * as TextGeneration from "./textGeneration/TextGeneration.ts";
 import * as PreviewAutomationBroker from "./mcp/PreviewAutomationBroker.ts";
@@ -1069,8 +1070,10 @@ const makeWsRpcLayer = (
       const loadServerConfig = Effect.gen(function* () {
         const keybindingsConfig = yield* keybindings.loadConfigState;
         const providers = yield* providerRegistry.getProviders;
-        const settings = ServerSettings.redactServerSettingsForClient(
-          yield* serverSettings.getSettings,
+        const rawSettings = yield* serverSettings.getSettings;
+        const settings = ServerSettings.redactServerSettingsForClient(rawSettings);
+        const chatterboxVoices = yield* scanChatterboxVoices(
+          rawSettings.speech.chatterboxVoicesDir,
         );
         const environment = yield* serverEnvironment.getDescriptor;
         const auth = yield* serverAuth.getDescriptor();
@@ -1084,6 +1087,7 @@ const makeWsRpcLayer = (
           issues: keybindingsConfig.issues,
           providers,
           availableEditors: yield* externalLauncher.resolveAvailableEditors(),
+          chatterboxVoices,
           observability: {
             logsDirectoryPath: config.logsDir,
             localTracingEnabled: true,
