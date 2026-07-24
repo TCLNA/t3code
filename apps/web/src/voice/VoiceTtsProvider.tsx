@@ -7,6 +7,7 @@ import { useThreadMessages } from "~/state/entities";
 import { primaryServerSettingsAtom } from "~/state/server";
 import { resolveThreadRouteTarget } from "~/threadRoutes";
 
+import { selectSynthVoice } from "../components/voice/selectSynthVoice";
 import { prepareForSpeech } from "./humanizeSpeech";
 import { TtsPlaybackController } from "./ttsPlayback";
 import { useVoiceStore } from "./useVoiceStore";
@@ -44,7 +45,7 @@ export function VoiceTtsProvider({ children }: { children: React.ReactNode }) {
   // Lazily create the single playback controller.
   useEffect(() => {
     const playback = new TtsPlaybackController({
-      getVoice: () => speechRef.current.kokoroVoice || undefined,
+      getVoice: () => selectSynthVoice(speechRef.current),
     });
     playbackRef.current = playback;
     return () => {

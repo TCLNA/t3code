@@ -34,6 +34,7 @@ interface PrimaryServerState {
 
 const EMPTY_AVAILABLE_EDITORS: ReadonlyArray<EditorId> = [];
 const EMPTY_SERVER_PROVIDERS: ReadonlyArray<ServerProvider> = [];
+const EMPTY_CHATTERBOX_VOICES: ReadonlyArray<string> = [];
 const EMPTY_PRIMARY_SERVER_STATE: PrimaryServerState = {
   config: null,
   latestEvent: null,
@@ -89,6 +90,11 @@ export const primaryServerAvailableEditorsAtom = Atom.make(
   (get): ReadonlyArray<EditorId> =>
     get(primaryServerConfigAtom)?.availableEditors ?? EMPTY_AVAILABLE_EDITORS,
 ).pipe(Atom.withLabel("web-primary-server-available-editors"));
+
+export const primaryServerChatterboxVoicesAtom = Atom.make(
+  (get): ReadonlyArray<string> =>
+    get(primaryServerConfigAtom)?.chatterboxVoices ?? EMPTY_CHATTERBOX_VOICES,
+).pipe(Atom.withLabel("web-primary-server-chatterbox-voices"));
 
 export const primaryServerKeybindingsConfigPathAtom = Atom.make(
   (get): string | null => get(primaryServerConfigAtom)?.keybindingsConfigPath ?? null,
