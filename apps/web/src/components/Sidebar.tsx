@@ -29,7 +29,7 @@ import {
 } from "./ThreadStatusIndicators";
 import { ProjectFavicon } from "./ProjectFavicon";
 import { TtsEngineSelect } from "./voice/TtsEngineSelect";
-import { CHATTERBOX_VOICE_NOTE, shouldShowKokoroVoices } from "./voice/ttsEngine";
+import { shouldShowKokoroVoices } from "./voice/ttsEngine";
 import { useAtomValue } from "@effect/atom-react";
 import { autoAnimate } from "@formkit/auto-animate";
 import React, { useCallback, useEffect, memo, useMemo, useRef, useState } from "react";
@@ -229,6 +229,7 @@ import {
 import { useVoiceStore } from "~/voice/useVoiceStore";
 import { useNotificationSounds } from "~/voice/useNotificationSounds";
 import {
+  primaryServerChatterboxVoicesAtom,
   primaryServerConfigAtom,
   primaryServerKeybindingsAtom,
   primaryServerSettingsAtom,
@@ -2878,6 +2879,8 @@ function SidebarVoiceDropdown() {
   const enabledVoices = settings.speech.kokoroEnabledVoices ?? [...KOKORO_VOICES];
   const activeVoice = settings.speech.kokoroVoice || DEFAULT_KOKORO_VOICE;
   const ttsEngine = settings.speech.ttsEngine ?? "kokoro";
+  const chatterboxVoices = useAtomValue(primaryServerChatterboxVoicesAtom);
+  const activeChatterboxVoice = settings.speech.chatterboxVoice ?? "";
 
   return (
     <Popover>
@@ -2908,10 +2911,35 @@ function SidebarVoiceDropdown() {
             />
           </div>
         )}
-        {ttsEnabled && !shouldShowKokoroVoices(ttsEngine) && (
+        {ttsEnabled && !shouldShowKokoroVoices(ttsEngine) && chatterboxVoices.length === 0 && (
           <p className="mt-2 border-t border-border px-1 pt-2 text-xs text-muted-foreground">
-            {CHATTERBOX_VOICE_NOTE}
+            No Chatterbox voices found — add .wav files to the voices folder.
           </p>
+        )}
+        {ttsEnabled && !shouldShowKokoroVoices(ttsEngine) && chatterboxVoices.length > 0 && (
+          <div className="mt-2 flex flex-col border-t border-border pt-2">
+            <span className="px-1 pb-1 text-xs text-muted-foreground">Voice</span>
+            {chatterboxVoices.map((voice) => (
+              <button
+                key={voice}
+                type="button"
+                className={cn(
+                  "flex w-full items-center gap-2 rounded-md px-1 py-1.5 text-left text-sm",
+                  voice === activeChatterboxVoice
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                )}
+                onClick={() =>
+                  updateSettings({ speech: { ...settings.speech, chatterboxVoice: voice } })
+                }
+              >
+                <span className="flex size-3.5 shrink-0 items-center justify-center">
+                  {voice === activeChatterboxVoice && <CheckIcon className="size-3" />}
+                </span>
+                {voice}
+              </button>
+            ))}
+          </div>
         )}
         {ttsEnabled && shouldShowKokoroVoices(ttsEngine) && enabledVoices.length > 0 && (
           <div className="mt-2 flex flex-col border-t border-border pt-2">

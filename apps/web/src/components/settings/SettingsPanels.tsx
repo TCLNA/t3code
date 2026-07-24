@@ -53,6 +53,7 @@ import {
 } from "../../providerInstances";
 import { ensureLocalApi, readLocalApi } from "../../localApi";
 import {
+  primaryServerChatterboxVoicesAtom,
   primaryServerObservabilityAtom,
   primaryServerProvidersAtom,
   serverEnvironment,
@@ -66,7 +67,7 @@ import { Checkbox } from "../ui/checkbox";
 import { DraftInput } from "../ui/draft-input";
 import { Select, SelectItem, SelectPopup, SelectTrigger, SelectValue } from "../ui/select";
 import { TtsEngineSelect } from "../voice/TtsEngineSelect";
-import { CHATTERBOX_VOICE_NOTE, shouldShowKokoroVoices } from "../voice/ttsEngine";
+import { shouldShowKokoroVoices } from "../voice/ttsEngine";
 import { Switch } from "../ui/switch";
 import { stackedThreadToast, toastManager } from "../ui/toast";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
@@ -92,7 +93,6 @@ import {
   useRelativeTimeTick,
 } from "./settingsLayout";
 import { ProjectFavicon } from "../ProjectFavicon";
-import { useSimplifiedNavigate } from "../simplified/simplifiedNavigation";
 import { useAtomCommand } from "../../state/use-atom-command";
 
 const THEME_OPTIONS = [
@@ -496,9 +496,9 @@ export function GeneralSettingsPanel() {
   const { theme, setTheme } = useTheme();
   const settings = usePrimarySettings();
   const updateSettings = useUpdatePrimarySettings();
-  const simplifiedNavigate = useSimplifiedNavigate();
   const observability = useAtomValue(primaryServerObservabilityAtom);
   const serverProviders = useAtomValue(primaryServerProvidersAtom);
+  const chatterboxVoices = useAtomValue(primaryServerChatterboxVoicesAtom);
   const diagnosticsDescription = formatDiagnosticsDescription({
     localTracingEnabled: observability?.localTracingEnabled ?? false,
     otlpTracesEnabled: observability?.otlpTracesEnabled ?? false,
@@ -628,42 +628,6 @@ export function GeneralSettingsPanel() {
               checked={settings.wordWrap}
               onCheckedChange={(checked) => updateSettings({ wordWrap: Boolean(checked) })}
               aria-label="Wrap code, tables, diffs, and file previews by default"
-            />
-          }
-        />
-
-        <SettingsRow
-          title="Simplified mobile view"
-          description="Replace the app with a compact, voice-first mobile layout. Adds ?simplified=true to the URL so it persists and can be shared."
-          resetAction={
-            settings.simplifiedMobileView !== DEFAULT_UNIFIED_SETTINGS.simplifiedMobileView ? (
-              <SettingResetButton
-                label="simplified mobile view"
-                onClick={() => {
-                  updateSettings({
-                    simplifiedMobileView: DEFAULT_UNIFIED_SETTINGS.simplifiedMobileView,
-                  });
-                  simplifiedNavigate({
-                    to: ".",
-                    search: (prev) => ({ ...prev, simplified: undefined }),
-                  });
-                }}
-              />
-            ) : null
-          }
-          control={
-            <Switch
-              checked={settings.simplifiedMobileView}
-              onCheckedChange={(checked) => {
-                const next = Boolean(checked);
-                updateSettings({ simplifiedMobileView: next });
-                simplifiedNavigate({
-                  to: ".",
-                  search: (prev) =>
-                    next ? { ...prev, simplified: true } : { ...prev, simplified: undefined },
-                });
-              }}
-              aria-label="Enable simplified mobile view"
             />
           }
         />
@@ -1111,7 +1075,38 @@ export function GeneralSettingsPanel() {
             </div>
           ) : (
             <div className="px-4 py-3.5 sm:px-5">
-              <p className="text-sm text-muted-foreground">{CHATTERBOX_VOICE_NOTE}</p>
+              {chatterboxVoices.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No Chatterbox voices found — add .wav files to the voices folder.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  <p className="mb-1 text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+                    Voice
+                  </p>
+                  {chatterboxVoices.map((voice) => {
+                    const isChecked = (settings.speech.chatterboxVoice ?? "") === voice;
+                    return (
+                      <label
+                        key={voice}
+                        className="flex cursor-pointer items-center gap-2.5 text-sm text-foreground"
+                      >
+                        <input
+                          type="radio"
+                          name="chatterbox-voice"
+                          checked={isChecked}
+                          onChange={() =>
+                            updateSettings({
+                              speech: { ...settings.speech, chatterboxVoice: voice },
+                            })
+                          }
+                        />
+                        {voice}
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </SettingsSection>
