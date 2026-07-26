@@ -6,9 +6,14 @@ import { threadHasStarted } from "../components/ChatView.logic";
 import SimplifiedThreadScreen from "../components/simplified/SimplifiedThreadScreen";
 import { useSimplifiedMode } from "../components/simplified/useSimplifiedMode";
 import { finalizePromotedDraftThreadByRef, useComposerDraftStore } from "../composerDraftStore";
-import { resolveThreadRouteRef } from "../threadRoutes";
+import { resolveThreadRouteRef, resolveThreadRouteRenderState } from "../threadRoutes";
 import { SidebarInset } from "~/components/ui/sidebar";
-import { useEnvironmentThreadRefs, useThreadDetail, useThreadShell } from "../state/entities";
+import {
+  useEnvironmentThreadRefs,
+  useThreadDetail,
+  useThreadShell,
+  useThreadStatus,
+} from "../state/entities";
 import { useEnvironmentQuery } from "../state/query";
 import { environmentShell } from "../state/shell";
 
@@ -22,9 +27,9 @@ function ChatThreadRouteView() {
   );
   const serverThreadShell = useThreadShell(threadRef);
   const serverThreadDetail = useThreadDetail(threadRef);
+  const serverThreadStatus = useThreadStatus(threadRef);
   const environmentThreadRefs = useEnvironmentThreadRefs(threadRef?.environmentId ?? null);
   const bootstrapComplete = shell.data?.snapshot._tag === "Some";
-  const threadExists = serverThreadShell !== null || serverThreadDetail !== null;
   const environmentHasServerThreads = environmentThreadRefs.length > 0;
   const draftThreadExists = useComposerDraftStore((store) =>
     threadRef ? store.getDraftThreadByRef(threadRef) !== null : false,
@@ -38,7 +43,13 @@ function ChatThreadRouteView() {
     }
     return store.hasDraftThreadsInEnvironment(threadRef.environmentId);
   });
-  const routeThreadExists = threadExists || draftThreadExists;
+  const renderState = resolveThreadRouteRenderState({
+    bootstrapComplete,
+    serverThreadShellExists: serverThreadShell !== null,
+    serverThreadDetailExists: serverThreadDetail !== null,
+    serverThreadDetailDeleted: serverThreadStatus === "deleted",
+    draftThreadExists,
+  });
   const serverThreadStarted = threadHasStarted(serverThreadDetail);
   const environmentHasAnyThreads = environmentHasServerThreads || environmentHasDraftThreads;
   const simplified = useSimplifiedMode();
@@ -48,10 +59,10 @@ function ChatThreadRouteView() {
       return;
     }
 
-    if (!routeThreadExists && environmentHasAnyThreads) {
+    if (renderState === "missing" && environmentHasAnyThreads) {
       void navigate({ to: "/", replace: true });
     }
-  }, [bootstrapComplete, environmentHasAnyThreads, navigate, routeThreadExists, threadRef]);
+  }, [bootstrapComplete, environmentHasAnyThreads, navigate, renderState, threadRef]);
 
   useEffect(() => {
     if (!threadRef || !serverThreadStarted || !draftThread) {
@@ -60,7 +71,7 @@ function ChatThreadRouteView() {
     finalizePromotedDraftThreadByRef(threadRef);
   }, [draftThread, serverThreadStarted, threadRef]);
 
-  if (!threadRef || !bootstrapComplete || !routeThreadExists) {
+  if (!threadRef || renderState !== "ready") {
     return null;
   }
 
