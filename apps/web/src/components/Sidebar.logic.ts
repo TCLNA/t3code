@@ -360,6 +360,20 @@ export function isContextMenuPointerDown(input: {
   return input.isMac && input.button === 0 && input.ctrlKey;
 }
 
+// Touch devices have no right-click, so a press-and-hold on a thread row opens
+// the same context menu. These thresholds mirror the platform long-press feel:
+// fire after ~half a second, and cancel if the finger drags (i.e. the user is
+// scrolling the list rather than holding a single row).
+export const LONG_PRESS_DURATION_MS = 500;
+export const LONG_PRESS_MOVE_TOLERANCE_PX = 10;
+
+export function exceedsLongPressMoveTolerance(
+  start: { x: number; y: number },
+  current: { x: number; y: number },
+): boolean {
+  return Math.hypot(current.x - start.x, current.y - start.y) > LONG_PRESS_MOVE_TOLERANCE_PX;
+}
+
 export function resolveThreadRowClassName(input: {
   isActive: boolean;
   isSelected: boolean;

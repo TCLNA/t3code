@@ -198,6 +198,8 @@ import {
   resolveAdjacentThreadId,
   isContextMenuPointerDown,
   isTrailingDoubleClick,
+  exceedsLongPressMoveTolerance,
+  LONG_PRESS_DURATION_MS,
   resolveProjectStatusIndicator,
   resolveThreadRowClassName,
   resolveThreadStatusPill,
@@ -514,6 +516,13 @@ export const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThr
   );
   const handleRowClick = useCallback(
     (event: React.MouseEvent) => {
+      // A long-press just opened the context menu; swallow the trailing click so
+      // the row doesn't also navigate into the thread.
+      if (longPressTriggeredRef.current) {
+        longPressTriggeredRef.current = false;
+        event.preventDefault();
+        return;
+      }
       handleThreadClick(event, threadRef, orderedProjectThreadKeys);
     },
     [handleThreadClick, orderedProjectThreadKeys, threadRef],
@@ -544,18 +553,12 @@ export const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThr
     },
     [navigateToThread, threadRef],
   );
-  const handleRowContextMenu = useCallback(
-    (event: React.MouseEvent) => {
-      event.preventDefault();
+  const openThreadContextMenu = useCallback(
+    (position: { x: number; y: number }) => {
       const hasSelection = useThreadSelectionStore.getState().hasSelection();
       if (hasSelection && isSelected) {
         void (async () => {
-          const result = await settlePromise(() =>
-            handleMultiSelectContextMenu({
-              x: event.clientX,
-              y: event.clientY,
-            }),
-          );
+          const result = await settlePromise(() => handleMultiSelectContextMenu(position));
           if (result._tag === "Failure") {
             const error = squashAtomCommandFailure(result);
             toastManager.add(
@@ -574,12 +577,7 @@ export const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThr
         clearSelection();
       }
       void (async () => {
-        const result = await settlePromise(() =>
-          handleThreadContextMenu(threadRef, {
-            x: event.clientX,
-            y: event.clientY,
-          }),
-        );
+        const result = await settlePromise(() => handleThreadContextMenu(threadRef, position));
         if (result._tag === "Failure") {
           const error = squashAtomCommandFailure(result);
           toastManager.add(
@@ -593,6 +591,53 @@ export const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThr
       })();
     },
     [clearSelection, handleMultiSelectContextMenu, handleThreadContextMenu, isSelected, threadRef],
+  );
+  const handleRowContextMenu = useCallback(
+    (event: React.MouseEvent) => {
+      event.preventDefault();
+      openThreadContextMenu({ x: event.clientX, y: event.clientY });
+    },
+    [openThreadContextMenu],
+  );
+  // Touch devices have no right-click, so a press-and-hold opens the same menu.
+  // The timer fires the menu; a finger drag past the tolerance (i.e. scrolling)
+  // cancels it. `longPressTriggeredRef` suppresses the click that a tap-release
+  // would otherwise send to the row (which would navigate into the thread).
+  const longPressTimerRef = useRef<number | null>(null);
+  const longPressOriginRef = useRef<{ x: number; y: number } | null>(null);
+  const longPressTriggeredRef = useRef(false);
+  const cancelLongPress = useCallback(() => {
+    if (longPressTimerRef.current !== null) {
+      window.clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    longPressOriginRef.current = null;
+  }, []);
+  const handleRowPointerDown = useCallback(
+    (event: React.PointerEvent) => {
+      if (event.pointerType !== "touch") return;
+      cancelLongPress();
+      longPressTriggeredRef.current = false;
+      const origin = { x: event.clientX, y: event.clientY };
+      longPressOriginRef.current = origin;
+      longPressTimerRef.current = window.setTimeout(() => {
+        longPressTimerRef.current = null;
+        longPressOriginRef.current = null;
+        longPressTriggeredRef.current = true;
+        openThreadContextMenu(origin);
+      }, LONG_PRESS_DURATION_MS);
+    },
+    [cancelLongPress, openThreadContextMenu],
+  );
+  const handleRowPointerMove = useCallback(
+    (event: React.PointerEvent) => {
+      const origin = longPressOriginRef.current;
+      if (origin === null) return;
+      if (exceedsLongPressMoveTolerance(origin, { x: event.clientX, y: event.clientY })) {
+        cancelLongPress();
+      }
+    },
+    [cancelLongPress],
   );
   const handlePrClick = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -704,11 +749,15 @@ export const SidebarThreadRow = memo(function SidebarThreadRow(props: SidebarThr
         className={`${resolveThreadRowClassName({
           isActive,
           isSelected,
-        })} relative isolate`}
+        })} relative isolate [-webkit-touch-callout:none]`}
         onClick={handleRowClick}
         onDoubleClick={handleRowDoubleClick}
         onKeyDown={handleRowKeyDown}
         onContextMenu={handleRowContextMenu}
+        onPointerDown={handleRowPointerDown}
+        onPointerMove={handleRowPointerMove}
+        onPointerUp={cancelLongPress}
+        onPointerCancel={cancelLongPress}
       >
         <div className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
           {prStatus && (

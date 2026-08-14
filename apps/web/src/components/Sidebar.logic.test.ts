@@ -12,6 +12,8 @@ import {
   hasUnseenCompletion,
   isContextMenuPointerDown,
   isTrailingDoubleClick,
+  exceedsLongPressMoveTolerance,
+  LONG_PRESS_MOVE_TOLERANCE_PX,
   orderItemsByPreferredIds,
   resolveProjectStatusIndicator,
   resolveSidebarStageBadgeLabel,
@@ -1422,5 +1424,20 @@ describe("sortLogicalProjectsForSidebar", () => {
         (project) => project.projectKey,
       ),
     ).toEqual(["logical-newer", "logical-older"]);
+  });
+});
+
+describe("exceedsLongPressMoveTolerance", () => {
+  it("treats a stationary press as within tolerance", () => {
+    expect(exceedsLongPressMoveTolerance({ x: 40, y: 80 }, { x: 40, y: 80 })).toBe(false);
+  });
+
+  it("keeps small jitter within tolerance", () => {
+    expect(exceedsLongPressMoveTolerance({ x: 40, y: 80 }, { x: 40 + 3, y: 80 - 4 })).toBe(false); // hypot(3,4) = 5 <= tolerance
+  });
+
+  it("treats a drag/scroll past the tolerance as movement", () => {
+    const moved = { x: 40, y: 80 + LONG_PRESS_MOVE_TOLERANCE_PX + 1 };
+    expect(exceedsLongPressMoveTolerance({ x: 40, y: 80 }, moved)).toBe(true);
   });
 });

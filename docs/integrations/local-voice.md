@@ -1,8 +1,8 @@
 # Local Voice Mode (whisper.cpp + Kokoro)
 
-T3 Code can run a fully local, hands-free voice loop: speak a prompt, have it
-transcribed on-device with [whisper.cpp](https://github.com/ggerganov/whisper.cpp),
-sent to the agent, and have the reply spoken back with
+T3 Code can run a fully local voice setup: dictate into the composer with
+on-device [whisper.cpp](https://github.com/ggerganov/whisper.cpp) transcription,
+and have replies spoken back with
 [Kokoro TTS](https://github.com/hexgrad/kokoro) — in parallel with the text
 printing. Anything that looks like code (fenced blocks, inline snippets, URLs,
 file paths) is stripped before it is read aloud.
@@ -12,13 +12,14 @@ it at the required binaries/models. No large artifacts are bundled.
 
 ## What you get
 
-- A **Voice Mode** overlay (mic button in the composer footer) with an animated,
-  audio-reactive orb — like ChatGPT's voice mode.
-- Three ways to submit a spoken prompt:
-  - **Push-to-talk** — hold the mic button, release to submit.
-  - **Silence detection** — pause and it submits automatically (auto mode).
-  - **Codeword** — say "send prompt" (configurable) at the end of your sentence.
-- Barge-in: start talking and the spoken reply stops immediately.
+- **Inline dictation** — a mic button next to Send in the composer (and the
+  `Alt+V` keybinding) toggles recording. Speech is transcribed and inserted at
+  the caret; it does not auto-submit, so you can edit before sending. Only two
+  states: recording / not-recording.
+- **Text-to-speech** — a muted-by-default speaker toggle auto-narrates streamed
+  replies, plus a per-message "Listen" button. Anything that looks like code is
+  skipped.
+- Barge-in: starting a recording stops any in-flight spoken reply.
 
 ## 1. Install whisper.cpp
 
@@ -82,31 +83,44 @@ the `speech` group, or via environment variables. Settings take precedence.
     "kokoroCommand": "python /path/to/kokoro_adapter.py",
     "kokoroModelPath": "/path/to/kokoro-v1.0.onnx",
     "kokoroVoice": "af_heart",
-    "sendPromptCodeword": "send prompt",
-    "submitMode": "push-to-talk"
-  }
+  },
 }
 ```
 
 Environment variable fallbacks (used when a setting is blank):
 
-| Variable            | Purpose                                   |
-| ------------------- | ----------------------------------------- |
-| `T3_WHISPER_BIN`    | Path to `whisper-cli`                     |
-| `T3_WHISPER_MODEL`  | Path to the ggml whisper model            |
-| `T3_KOKORO_CMD`     | Kokoro adapter command                    |
-| `T3_KOKORO_MODEL`   | Kokoro model path (passed as `--model`)   |
-| `T3_KOKORO_VOICE`   | Default Kokoro voice                      |
+| Variable           | Purpose                                 |
+| ------------------ | --------------------------------------- |
+| `T3_WHISPER_BIN`   | Path to `whisper-cli`                   |
+| `T3_WHISPER_MODEL` | Path to the ggml whisper model          |
+| `T3_KOKORO_CMD`    | Kokoro adapter command                  |
+| `T3_KOKORO_MODEL`  | Kokoro model path (passed as `--model`) |
+| `T3_KOKORO_VOICE`  | Default Kokoro voice                    |
 
 ## 4. Use it
 
 1. Restart the server so it picks up the settings.
-2. Open a thread — a **mic button** appears in the composer footer (only when
+2. Open a thread — a **mic button** appears next to Send (only when
    `sttEnabled` is true).
-3. Click it to enter Voice Mode. Speak, then release (push-to-talk), pause
-   (auto mode), or say the codeword to submit.
-4. The reply prints and is spoken at the same time; code is skipped. Use the
-   mute or close buttons any time; starting to talk interrupts playback.
+3. Click it (or press `Alt+V`) to start dictating. Transcribed text lands at the
+   caret; click again or press `Alt+V` to stop. Edit as needed, then send.
+4. With `ttsEnabled` true, unmute the speaker toggle to have replies spoken as
+   they print (code is skipped), or use a message's "Listen" button. Starting a
+   recording interrupts playback.
+
+## Troubleshooting: whisper crashes on GPU
+
+Some whisper.cpp builds default to a GPU (Vulkan/CUDA) backend that can crash on
+certain drivers — e.g. `terminate called after throwing 'vk::SystemError' …
+createComputePipeline` on the open-source NVK driver. Force CPU by pointing
+`whisperBinaryPath` at a wrapper that adds whisper's `-ng` (`--no-gpu`) flag:
+
+```sh
+#!/bin/sh
+exec /usr/bin/whisper-cli -ng "$@"
+```
+
+Short dictation utterances transcribe on CPU in about a second.
 
 ## How it works
 
