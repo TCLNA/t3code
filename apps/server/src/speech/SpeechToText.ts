@@ -91,7 +91,8 @@ export const make = Effect.gen(function* () {
           );
         }
 
-        const binary = resolveConfigValue(speech.whisperBinaryPath, "T3_WHISPER_BIN") || "whisper-cli";
+        const binary =
+          resolveConfigValue(speech.whisperBinaryPath, "T3_WHISPER_BIN") || "whisper-cli";
         const model = resolveConfigValue(speech.whisperModelPath, "T3_WHISPER_MODEL");
         if (!model) {
           return yield* Effect.fail(

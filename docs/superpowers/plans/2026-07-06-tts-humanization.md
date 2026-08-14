@@ -22,9 +22,11 @@
 ### Task 1: Update `speakableText.ts` — replace strips with markers, export `stripMarkers`
 
 **Files:**
+
 - Modify: `packages/shared/src/speakableText.ts`
 
 **Interfaces:**
+
 - Produces: `markdownToSpeakable(markdown: string): string` (output now contains `[CODE:…]`, `[PATH:…]`, `[ARROW:…]` markers instead of stripped/dropped tokens)
 - Produces: `stripMarkers(text: string): string` (exported fallback)
 
@@ -40,7 +42,11 @@ function markPathLike(text: string): string {
     if (match.includes("/")) return `[PATH:${match}]`;
     const dot = match.lastIndexOf(".");
     if (dot === -1) return match;
-    const ext = match.slice(dot + 1).split(":")[0]?.toLowerCase() ?? "";
+    const ext =
+      match
+        .slice(dot + 1)
+        .split(":")[0]
+        ?.toLowerCase() ?? "";
     return COMMON_FILE_EXTENSIONS.has(ext) ? `[PATH:${match}]` : match;
   });
 }
@@ -67,17 +73,17 @@ In `markdownToSpeakable`, change two lines and add one:
 
 ```typescript
 // Change:
-  text = text.replace(INLINE_CODE, "$1");
+text = text.replace(INLINE_CODE, "$1");
 // To:
-  text = text.replace(INLINE_CODE, "[CODE:$1]");
+text = text.replace(INLINE_CODE, "[CODE:$1]");
 ```
 
 ```typescript
 // Change:
-  text = stripPathLike(text);
+text = stripPathLike(text);
 // To:
-  text = markPathLike(text);
-  text = markArrows(text);
+text = markPathLike(text);
+text = markArrows(text);
 ```
 
 - [ ] **Step 3: Verify TypeScript compiles**
@@ -101,9 +107,11 @@ git commit -m "feat(voice): replace speakableText strips with [CODE/PATH/ARROW] 
 ### Task 2: Update `speakableText.test.ts` — fix broken tests, add marker coverage
 
 **Files:**
+
 - Modify: `packages/shared/src/speakableText.test.ts`
 
 **Interfaces:**
+
 - Consumes: `markdownToSpeakable`, `stripMarkers` from `./speakableText.ts`
 
 - [ ] **Step 1: Run tests to see which ones break**
@@ -192,7 +200,9 @@ describe("stripMarkers", () => {
   });
 
   it("handles mixed marker sentence", () => {
-    const result = stripMarkers("Update [CODE:useVoiceStore] so [PATH:foo.ts] returns [ARROW:->] value.");
+    const result = stripMarkers(
+      "Update [CODE:useVoiceStore] so [PATH:foo.ts] returns [ARROW:->] value.",
+    );
     expect(result).toBe("Update useVoiceStore so  returns , value.");
   });
 });
@@ -218,9 +228,11 @@ git commit -m "test(voice): update speakableText tests for marker output, add st
 ### Task 3: Add contracts for the humanize endpoint
 
 **Files:**
+
 - Modify: `packages/contracts/src/speech.ts`
 
 **Interfaces:**
+
 - Produces: `SpeechHumanizeRequest` (Schema + type), `SpeechHumanizeResult` (Schema + type) — already re-exported via `packages/contracts/src/index.ts` which does `export * from "./speech.ts"`
 
 - [ ] **Step 1: Add schemas to `speech.ts`**
@@ -265,9 +277,11 @@ git commit -m "feat(voice): add SpeechHumanizeRequest/Result contracts"
 ### Task 4: Create `SpeechHumanize` Effect service
 
 **Files:**
+
 - Create: `apps/server/src/speech/SpeechHumanize.ts`
 
 **Interfaces:**
+
 - Consumes: `ProcessRunner` from `../processRunner.ts`
 - Produces: `SpeechHumanize` (Effect Context.Service), `SpeechHumanize.layer` (Effect Layer)
   - `humanize(sentence: string): Effect.Effect<string, never>` — never fails; degrades to original sentence on error/timeout
@@ -372,10 +386,12 @@ git commit -m "feat(voice): add SpeechHumanize Effect service (claude -p humaniz
 ### Task 5: Add `POST /api/tts/humanize` route and wire the service
 
 **Files:**
+
 - Modify: `apps/server/src/speech/speechRoutes.ts`
 - Modify: `apps/server/src/server.ts`
 
 **Interfaces:**
+
 - Consumes: `SpeechHumanize` service from `./SpeechHumanize.ts`, `SpeechHumanizeRequest` from `@t3tools/contracts`
 - Produces: route at `POST /api/tts/humanize` → `{ humanized: string }`
 
@@ -384,7 +400,11 @@ git commit -m "feat(voice): add SpeechHumanize Effect service (claude -p humaniz
 At the top of `apps/server/src/speech/speechRoutes.ts`, add to the imports:
 
 ```typescript
-import { AuthOrchestrationOperateScope, TextToSpeechRequest, SpeechHumanizeRequest } from "@t3tools/contracts";
+import {
+  AuthOrchestrationOperateScope,
+  TextToSpeechRequest,
+  SpeechHumanizeRequest,
+} from "@t3tools/contracts";
 ```
 
 ```typescript
@@ -434,9 +454,11 @@ import * as SpeechHumanize from "./speech/SpeechHumanize.ts";
 Update `SpeechLayerLive` (line 249):
 
 ```typescript
-const SpeechLayerLive = Layer.mergeAll(SpeechToText.layer, TextToSpeech.layer, SpeechHumanize.layer).pipe(
-  Layer.provide(ProcessRunner.layer),
-);
+const SpeechLayerLive = Layer.mergeAll(
+  SpeechToText.layer,
+  TextToSpeech.layer,
+  SpeechHumanize.layer,
+).pipe(Layer.provide(ProcessRunner.layer));
 ```
 
 Add `humanizeRouteLayer` wherever `sttRouteLayer` and `ttsRouteLayer` are composed into the HTTP router. Search for `sttRouteLayer` and add `humanizeRouteLayer` alongside it.
@@ -461,9 +483,11 @@ git commit -m "feat(voice): add POST /api/tts/humanize route, wire SpeechHumaniz
 ### Task 6: Create `humanizeSpeech.ts` web client
 
 **Files:**
+
 - Create: `apps/web/src/voice/humanizeSpeech.ts`
 
 **Interfaces:**
+
 - Consumes: `stripMarkers` from `@t3tools/shared/speakableText`, `voiceFetch` from `./voiceHttp`
 - Produces: `humanizeForSpeech(sentence: string): Promise<string>` — always resolves, never rejects
 
@@ -524,9 +548,11 @@ git commit -m "feat(voice): add humanizeForSpeech client (3s timeout, stripMarke
 ### Task 7: Wire `humanizeForSpeech` into `VoiceTtsProvider.tsx`
 
 **Files:**
+
 - Modify: `apps/web/src/voice/VoiceTtsProvider.tsx`
 
 **Interfaces:**
+
 - Consumes: `humanizeForSpeech` from `./humanizeSpeech`
 - The key insight: call `playback.nextIndex()` eagerly (reserves the slot and determines play order), then `humanizeForSpeech` fires async, and calls `playback.enqueue(idx, humanized)` when done. Units play in index order regardless of which LLM call finishes first.
 
@@ -624,6 +650,7 @@ git commit -m "feat(voice): thread humanizeForSpeech into TTS pipeline (auto-nar
 ## Verification
 
 After all tasks complete, manually test by opening the app, sending a message that includes:
+
 1. Inline code: `` `useVoiceStore` `` — should be spoken as "use voice store"
 2. A file path: `src/components/Foo.tsx` — should be spoken as "the foo component dot t s x" (or similar)
 3. An arrow: `state goes false -> true` — should be spoken as "state goes false to true"

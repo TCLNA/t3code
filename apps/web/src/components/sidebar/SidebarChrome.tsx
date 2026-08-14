@@ -1,25 +1,35 @@
 import { useAtomValue } from "@effect/atom-react";
 import {
+  ArrowLeftIcon,
   BellIcon,
+  ChartNoAxesColumnIcon,
   CheckIcon,
   ChevronUpIcon,
+  GitPullRequestIcon,
   SettingsIcon,
   Volume2Icon,
   VolumeXIcon,
 } from "lucide-react";
 import { memo, useCallback } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import { DEFAULT_KOKORO_VOICE, KOKORO_VOICES } from "@t3tools/contracts";
 
-import { APP_STAGE_LABEL } from "../../branding";
+import { useEnvironmentIdentificationMode } from "../../hooks/useSettings";
 import { cn } from "../../lib/utils";
 import { useUpdatePrimarySettings } from "../../hooks/useSettings";
-import { primaryServerConfigAtom, primaryServerSettingsAtom } from "../../state/server";
+import { primaryServerSettingsAtom } from "../../state/server";
+import { usePrimaryEnvironment } from "../../state/environments";
 import { useVoiceStore } from "../../voice/useVoiceStore";
-import { resolveSidebarStageBadgeLabel } from "../Sidebar.logic";
-import { SidebarStageBackdrop, resolveSidebarStageBackdropVariant } from "../SidebarStageBackdrop";
+import {
+  resolveEnvironmentIdentificationPillLabel,
+  resolveSidebarStageBackdropVariant,
+  resolveSidebarStageFocusRingOffsetClass,
+  SidebarStageBackdrop,
+  useEnvironmentStageLabel,
+} from "../SidebarStageBackdrop";
 import { TtsEngineSelect } from "../voice/TtsEngineSelect";
 import { CHATTERBOX_VOICE_NOTE, shouldShowKokoroVoices } from "../voice/ttsEngine";
+import { Badge } from "../ui/badge";
 import { Popover, PopoverPopup, PopoverTrigger } from "../ui/popover";
 import { Switch } from "../ui/switch";
 import {
@@ -31,16 +41,25 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "../ui/sidebar";
+import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { SidebarProviderUpdatePill } from "./SidebarProviderUpdatePill";
-import { SidebarUpdatePill } from "./SidebarUpdatePill";
+import { SidebarUpdateArchitectureWarning, SidebarUpdatePill } from "./SidebarUpdatePill";
 
 export const SidebarChromeHeader = memo(function SidebarChromeHeader({
   isElectron,
 }: {
   isElectron: boolean;
 }) {
-  const stageLabel = useSidebarStageLabel();
-  const backdropVariant = resolveSidebarStageBackdropVariant(stageLabel);
+  const stageLabel = useEnvironmentStageLabel();
+  const environmentIdentificationMode = useEnvironmentIdentificationMode();
+  const backdropVariant = resolveSidebarStageBackdropVariant(
+    stageLabel,
+    environmentIdentificationMode === "artwork",
+  );
+  const pillLabel =
+    environmentIdentificationMode === "pill"
+      ? resolveEnvironmentIdentificationPillLabel(stageLabel)
+      : null;
 
   return (
     <SidebarHeader
@@ -54,10 +73,21 @@ export const SidebarChromeHeader = memo(function SidebarChromeHeader({
         className={cn(
           "relative z-10 md:hidden",
           backdropVariant &&
-            "[:hover,[data-pressed]]:bg-white/15 focus-visible:ring-white/90 focus-visible:ring-offset-blue-700 [&_svg]:stroke-white/90! [&_svg]:opacity-100! [&_svg]:hover:stroke-white!",
+            "focus-visible:ring-white/90 [&_svg]:stroke-white/90! [&_svg]:opacity-100! [&_svg]:hover:stroke-white! [:hover,[data-pressed]]:bg-white/15",
+          backdropVariant && resolveSidebarStageFocusRingOffsetClass(backdropVariant),
         )}
       />
       <SidebarBrand onBackdrop={backdropVariant !== null} />
+      {pillLabel ? (
+        <Badge
+          className="relative z-10 ml-1 rounded-full px-1.5 text-muted-foreground"
+          data-environment-identification="pill"
+          size="sm"
+          variant="secondary"
+        >
+          {pillLabel}
+        </Badge>
+      ) : null}
     </SidebarHeader>
   );
 });
@@ -83,16 +113,6 @@ function SidebarBrand({ onBackdrop }: { onBackdrop: boolean }) {
       </span>
     </Link>
   );
-}
-
-function useSidebarStageLabel() {
-  const primaryServerVersion =
-    useAtomValue(primaryServerConfigAtom)?.environment.serverVersion ?? null;
-
-  return resolveSidebarStageBadgeLabel({
-    primaryServerVersion,
-    fallbackStageLabel: APP_STAGE_LABEL,
-  });
 }
 
 function T3Wordmark() {
@@ -213,30 +233,110 @@ function SidebarVoiceDropdown() {
 export const SidebarChromeFooter = memo(function SidebarChromeFooter() {
   const navigate = useNavigate();
   const { isMobile, setOpenMobile } = useSidebar();
-  const handleSettingsClick = useCallback(() => {
+  const currentFooterPage = useLocation({
+    select: (location) =>
+      location.pathname === "/usage"
+        ? "usage"
+        : location.pathname === "/pull-requests"
+          ? "pull-requests"
+          : null,
+  });
+  const primaryEnvironment = usePrimaryEnvironment();
+  const pullRequestsSupported =
+    primaryEnvironment?.serverConfig?.environment.capabilities.pullRequests === true;
+  const closeMobileSidebar = useCallback(() => {
     if (isMobile) {
       setOpenMobile(false);
     }
+  }, [isMobile, setOpenMobile]);
+  const handlePullRequestsClick = useCallback(() => {
+    closeMobileSidebar();
+    void navigate({ to: "/pull-requests", search: { involvement: "all", state: "open" } });
+  }, [closeMobileSidebar, navigate]);
+  const handleSettingsClick = useCallback(() => {
+    closeMobileSidebar();
     void navigate({ to: "/settings" });
+  }, [closeMobileSidebar, navigate]);
+
+  const handleUsageClick = useCallback(() => {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+    void navigate({ to: "/usage" });
   }, [isMobile, navigate, setOpenMobile]);
 
+  const handleBackClick = useCallback(() => {
+    closeMobileSidebar();
+    void navigate({ to: "/" });
+  }, [closeMobileSidebar, navigate]);
+
   return (
-    <SidebarFooter className="p-2">
+    <SidebarFooter className="p-[var(--sidebar-content-inset)]">
       <SidebarProviderUpdatePill />
-      <SidebarUpdatePill />
-      <SidebarMenu>
-        <SidebarMenuItem className="flex items-center gap-1">
-          <SidebarMenuButton
-            size="sm"
-            className="h-8 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-sidebar-muted-foreground/80 hover:bg-sidebar-row-hover hover:text-sidebar-foreground"
-            onClick={handleSettingsClick}
-          >
-            <SettingsIcon className="size-4.5 shrink-0" />
-            <span>Settings</span>
-          </SidebarMenuButton>
+      <SidebarUpdateArchitectureWarning />
+      <SidebarMenu className="flex-row items-center">
+        {currentFooterPage ? (
+          <SidebarMenuItem className="min-w-0 flex-1">
+            <SidebarMenuButton onClick={handleBackClick}>
+              <ArrowLeftIcon />
+              <span>Back</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        ) : (
+          <>
+            <SidebarMenuItem className="shrink-0">
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <SidebarMenuButton
+                      aria-label="Settings"
+                      onClick={handleSettingsClick}
+                      size="icon"
+                    >
+                      <SettingsIcon />
+                    </SidebarMenuButton>
+                  }
+                />
+                <TooltipPopup side="top">Settings</TooltipPopup>
+              </Tooltip>
+            </SidebarMenuItem>
+            {pullRequestsSupported ? (
+              <SidebarMenuItem className="shrink-0">
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <SidebarMenuButton
+                        aria-label="Pull Requests"
+                        onClick={handlePullRequestsClick}
+                        size="icon"
+                      >
+                        <GitPullRequestIcon />
+                      </SidebarMenuButton>
+                    }
+                  />
+                  <TooltipPopup side="top">Pull Requests</TooltipPopup>
+                </Tooltip>
+              </SidebarMenuItem>
+            ) : null}
+            <SidebarMenuItem className="shrink-0">
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <SidebarMenuButton aria-label="Usage" onClick={handleUsageClick} size="icon">
+                      <ChartNoAxesColumnIcon />
+                    </SidebarMenuButton>
+                  }
+                />
+                <TooltipPopup side="top">Usage</TooltipPopup>
+              </Tooltip>
+            </SidebarMenuItem>
+          </>
+        )}
+        <SidebarMenuItem className="ms-auto flex shrink-0 items-center gap-1">
           <SidebarAudioModeButton />
           <SidebarVoiceDropdown />
         </SidebarMenuItem>
+        <SidebarUpdatePill />
       </SidebarMenu>
     </SidebarFooter>
   );

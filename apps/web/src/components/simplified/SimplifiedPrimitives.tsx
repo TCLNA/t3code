@@ -18,20 +18,14 @@ export function SimplifiedHeader({
       {left}
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-semibold text-foreground">{title}</div>
-        {subtitle ? (
-          <div className="truncate text-xs text-muted-foreground">{subtitle}</div>
-        ) : null}
+        {subtitle ? <div className="truncate text-xs text-muted-foreground">{subtitle}</div> : null}
       </div>
       {right}
     </header>
   );
 }
 
-export function SessionStatusDot({
-  variant,
-}: {
-  variant: "needsYou" | "running" | "done";
-}) {
+export function SessionStatusDot({ variant }: { variant: "needsYou" | "running" | "done" }) {
   return (
     <span
       className={cn(

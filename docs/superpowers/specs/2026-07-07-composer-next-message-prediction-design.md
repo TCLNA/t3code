@@ -164,17 +164,17 @@ A small hook/store scoped to the active thread:
 
 ## Key files to touch
 
-| Concern | File |
-| --- | --- |
-| Predictor service | `apps/server/src/textGeneration/TextGeneration.ts` |
-| Claude driver | `apps/server/src/textGeneration/ClaudeTextGeneration.ts` |
-| Codex driver | `apps/server/src/textGeneration/CodexTextGeneration.ts` |
-| Prediction prompt | `apps/server/src/textGeneration/TextGenerationPrompts.ts` |
-| RPC contract | `packages/contracts/src/rpc.ts` |
-| RPC handler | `apps/server/src/ws.ts` |
-| Thread read model | `apps/server/src/orchestration/Services/ProjectionSnapshotQuery.ts` |
-| Client command | `packages/client-runtime/src/state/server.ts` |
-| Settings schema | `packages/contracts/src/settings.ts` |
-| Settings UI | `apps/web/src/components/settings/SettingsPanels.tsx` |
-| Fetch/cache hook | new file under `apps/web/src/` (composer-adjacent) |
+| Concern           | File                                                                                                |
+| ----------------- | --------------------------------------------------------------------------------------------------- |
+| Predictor service | `apps/server/src/textGeneration/TextGeneration.ts`                                                  |
+| Claude driver     | `apps/server/src/textGeneration/ClaudeTextGeneration.ts`                                            |
+| Codex driver      | `apps/server/src/textGeneration/CodexTextGeneration.ts`                                             |
+| Prediction prompt | `apps/server/src/textGeneration/TextGenerationPrompts.ts`                                           |
+| RPC contract      | `packages/contracts/src/rpc.ts`                                                                     |
+| RPC handler       | `apps/server/src/ws.ts`                                                                             |
+| Thread read model | `apps/server/src/orchestration/Services/ProjectionSnapshotQuery.ts`                                 |
+| Client command    | `packages/client-runtime/src/state/server.ts`                                                       |
+| Settings schema   | `packages/contracts/src/settings.ts`                                                                |
+| Settings UI       | `apps/web/src/components/settings/SettingsPanels.tsx`                                               |
+| Fetch/cache hook  | new file under `apps/web/src/` (composer-adjacent)                                                  |
 | Ghost UI + accept | `apps/web/src/components/ComposerPromptEditor.tsx`, `apps/web/src/components/chat/ChatComposer.tsx` |

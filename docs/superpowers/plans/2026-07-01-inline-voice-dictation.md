@@ -21,6 +21,7 @@
 ## File Structure
 
 **Create**
+
 - `apps/web/src/voice/dictationInsert.ts` — pure helper computing the text to insert (leading-space rule).
 - `apps/web/src/voice/dictationInsert.test.ts` — unit tests.
 - `apps/web/src/voice/useVoiceDictation.ts` — hook: recording lifecycle → capture → transcribe → insert.
@@ -28,6 +29,7 @@
 - `apps/web/src/components/chat/AssistantListenButton.tsx` — per-message Listen button.
 
 **Modify**
+
 - `packages/contracts/src/keybindings.ts` — add action id.
 - `packages/shared/src/keybindings.ts` — add default chord.
 - `packages/shared/src/keybindings.test.ts` (or nearest existing test) — resolve test.
@@ -43,6 +45,7 @@
 - `~/.t3/dev/settings.json`, `~/.t3/userdata/settings.json` — drop removed keys.
 
 **Delete**
+
 - `apps/web/src/components/voice/VoiceModeView.tsx`
 - `apps/web/src/components/voice/VoiceOrb.tsx`
 - `apps/web/src/components/voice/VoiceModeControls.tsx`
@@ -54,12 +57,14 @@
 ### Task 1: Register the `voice.toggleRecording` keybinding
 
 **Files:**
+
 - Modify: `packages/contracts/src/keybindings.ts` (STATIC_KEYBINDING_COMMANDS, ~line 50-71)
 - Modify: `packages/shared/src/keybindings.ts` (DEFAULT_KEYBINDINGS, ~line 21-54)
 - Modify: `docs/user/keybindings.md` (Available Commands, ~line 54-71)
 - Test: `packages/shared/src/keybindings.test.ts` (create if absent)
 
 **Interfaces:**
+
 - Produces: `KeybindingCommand` now includes `"voice.toggleRecording"`; default chord `alt+v`.
 
 - [ ] **Step 1: Write the failing test**
@@ -131,10 +136,12 @@ git commit -m "feat(voice): register voice.toggleRecording keybinding (alt+v)"
 ### Task 2: `dictationInsert` pure helper
 
 **Files:**
+
 - Create: `apps/web/src/voice/dictationInsert.ts`
 - Test: `apps/web/src/voice/dictationInsert.test.ts`
 
 **Interfaces:**
+
 - Produces: `dictationInsertText(prompt: string, cursor: number, chunk: string): string` — returns the exact string to splice in at `cursor` (trimmed chunk, prefixed with a single space when the char before `cursor` is a non-space, non-newline; `""` for a blank chunk).
 
 - [ ] **Step 1: Write the failing test**
@@ -207,6 +214,7 @@ git commit -m "feat(voice): add dictationInsertText helper"
 This is the "remove old system" swap. After it, no voice UI is mounted but the tree typechecks.
 
 **Files:**
+
 - Modify: `apps/web/src/voice/useVoiceStore.ts` (rewrite)
 - Modify: `apps/web/src/voice/audioCapture.ts` (remove push-to-talk)
 - Modify: `apps/web/src/components/chat/ChatComposer.tsx` (drop `ComposerVoiceButton` import at line 94 and its render at line 328)
@@ -214,6 +222,7 @@ This is the "remove old system" swap. After it, no voice UI is mounted but the t
 - Delete: `VoiceModeView.tsx`, `VoiceOrb.tsx`, `VoiceModeControls.tsx`, `ComposerVoiceButton.tsx`, `useVoiceSession.ts`
 
 **Interfaces:**
+
 - Produces: `useVoiceStore` with `{ recording, ttsMuted, error, setRecording, toggleRecording, setTtsMuted, toggleTtsMuted, setError }`.
 - Produces: `VoiceCaptureController` with only `{ start(): Promise<void>, stop(): Promise<void>, setAutoEndOnSilence(v), level }` and callback `onUtteranceEnd(wav: Uint8Array)` (no `forced` arg).
 
@@ -318,10 +327,12 @@ git commit -m "refactor(voice): slim voice store, remove overlay/orb and push-to
 ### Task 4: Remove `submitMode` + `sendPromptCodeword` from settings
 
 **Files:**
+
 - Modify: `packages/contracts/src/settings.ts` (SpeechSettings ~line 379-462; ServerSettingsPatch.speech ~line 621-633; and the `VoiceSubmitMode`/`DEFAULT_*` consts ~line 366-370 + `DEFAULT_SEND_PROMPT_CODEWORD`)
 - Modify: `~/.t3/dev/settings.json`, `~/.t3/userdata/settings.json`
 
 **Interfaces:**
+
 - Produces: `SpeechSettings` without `submitMode`/`sendPromptCodeword`; `speech` patch without them.
 
 - [ ] **Step 1: Check for other references**
@@ -332,6 +343,7 @@ Expected after Task 3: only `packages/contracts/src/settings.ts` and possibly `@
 - [ ] **Step 2: Edit the schema**
 
 In `packages/contracts/src/settings.ts`:
+
 - Delete the `submitMode` and `sendPromptCodeword` fields from the `SpeechSettings` struct and drop them from its `order` array.
 - Delete `submitMode` and `sendPromptCodeword` from the `speech` struct in `ServerSettingsPatch`.
 - Delete the now-unused consts `VoiceSubmitMode`, `DEFAULT_VOICE_SUBMIT_MODE`, `DEFAULT_SEND_PROMPT_CODEWORD` (keep `DEFAULT_KOKORO_VOICE`). Remove the `VoiceSubmitMode` type export.
@@ -372,10 +384,12 @@ git commit -m "refactor(voice): drop submitMode/sendPromptCodeword settings"
 ### Task 5: `VoiceTtsProvider` (context + auto-narration)
 
 **Files:**
+
 - Create: `apps/web/src/voice/VoiceTtsProvider.tsx`
 - Modify: `apps/web/src/routes/_chat.tsx` (mount the provider where `<VoiceModeView/>` was)
 
 **Interfaces:**
+
 - Consumes: `TtsPlaybackController` from `./ttsPlayback` (`new TtsPlaybackController(callbacks)`, `nextIndex()`, `enqueue(i, text)`, `stop()`, `dispose()`); `markdownToSpeakable`, `segmentSpeakable` from `@t3tools/shared/speakableText`; `useVoiceStore`; `primaryServerSettingsAtom`; `useThreadMessages`, `resolveThreadRouteTarget`, `useParams` (see deleted `useVoiceSession.ts` for the exact import paths/usage to mirror).
 - Produces: `useVoiceTts(): { speak(text: string): void; stop(): void }` and the `VoiceTtsProvider` component.
 
@@ -523,10 +537,12 @@ git commit -m "feat(voice): add VoiceTtsProvider with muted-by-default narration
 ### Task 6: `insertTextAtCursor` handle + `useVoiceDictation` hook
 
 **Files:**
+
 - Create: `apps/web/src/voice/useVoiceDictation.ts`
 - Modify: `apps/web/src/components/chat/ChatComposer.tsx` (add handle method + `ChatComposerHandle` interface entry + call the hook)
 
 **Interfaces:**
+
 - Consumes: `applyPromptReplacement(rangeStart, rangeEnd, replacement, options?)` (existing useCallback in ChatComposer ending ~line 1512), `expandCollapsedComposerCursor`, `composerCursor`, guards used by `insertTextAtEnd` (~line 1924); `dictationInsertText` (Task 2); `transcribeAudio` from `~/voice/sttClient`; `VoiceCaptureController` from `~/voice/audioCapture`; `useVoiceStore`; `useVoiceTts` (Task 5); `toastManager` from `~/components/ui/toast`.
 - Produces: `ChatComposerHandle.insertTextAtCursor(text: string): boolean`; `useVoiceDictation({ insertAtCursor, stopTts }: { insertAtCursor: (text: string) => void; stopTts: () => void }): void`.
 
@@ -535,7 +551,7 @@ git commit -m "feat(voice): add VoiceTtsProvider with muted-by-default narration
 In `ChatComposerHandle` (near line 395, beside `insertTextAtEnd`):
 
 ```ts
-  insertTextAtCursor: (text: string) => boolean;
+insertTextAtCursor: (text: string) => boolean;
 ```
 
 - [ ] **Step 2: Implement it in the imperative handle**
@@ -635,11 +651,11 @@ export function useVoiceDictation({
 Near the other hooks in `ChatComposer`, add:
 
 ```ts
-  const voiceTts = useVoiceTts();
-  useVoiceDictation({
-    insertAtCursor: (text) => composerRef.current?.insertTextAtCursor(text),
-    stopTts: voiceTts.stop,
-  });
+const voiceTts = useVoiceTts();
+useVoiceDictation({
+  insertAtCursor: (text) => composerRef.current?.insertTextAtCursor(text),
+  stopTts: voiceTts.stop,
+});
 ```
 
 Import `useVoiceDictation` from `../../voice/useVoiceDictation` and `useVoiceTts` from `../../voice/VoiceTtsProvider`.
@@ -661,10 +677,12 @@ git commit -m "feat(voice): dictation hook + insertTextAtCursor composer handle"
 ### Task 7: Mic + mute buttons in the composer
 
 **Files:**
+
 - Modify: `apps/web/src/components/chat/ComposerPrimaryActions.tsx`
 - Modify: `apps/web/src/components/chat/ChatComposer.tsx` (`ComposerFooterPrimaryActions` wrapper ~line 333-386 and its render site — thread new props)
 
 **Interfaces:**
+
 - Consumes: `useVoiceStore` (recording/ttsMuted/toggles), `settings.speech.sttEnabled/ttsEnabled`, `MicIcon`, `Volume2Icon`, `VolumeXIcon` from `lucide-react`.
 - Produces: `ComposerPrimaryActions` renders a mic button (and mute toggle) next to Send.
 
@@ -686,70 +704,70 @@ Destructure them in the component signature.
 Replace the final `return (<button type="submit" …>…</button>);` (lines 196-228) with a wrapping flex row that keeps the exact Send button and adds the mic (left of Send) and mute toggle:
 
 ```tsx
-  return (
-    <div className="flex items-center gap-1.5">
-      {props.ttsEnabled ? (
-        <button
-          type="button"
-          className="flex size-8 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:text-foreground/80"
-          {...pointerFocusProps}
-          onClick={props.onToggleMute}
-          aria-label={props.ttsMuted ? "Speak replies" : "Mute replies"}
-          aria-pressed={!props.ttsMuted}
-        >
-          {props.ttsMuted ? <VolumeXIcon className="size-4" /> : <Volume2Icon className="size-4" />}
-        </button>
-      ) : null}
-      {props.sttEnabled ? (
-        <button
-          type="button"
-          className={cn(
-            "flex h-9 w-9 cursor-pointer items-center justify-center rounded-full transition-all duration-150 hover:scale-105 sm:h-8 sm:w-8",
-            props.recording
-              ? "animate-pulse bg-red-500 text-white shadow-xs shadow-red-500/30"
-              : "bg-primary/90 text-primary-foreground shadow-xs enabled:shadow-primary/24 hover:bg-primary",
-          )}
-          {...pointerFocusProps}
-          onClick={props.onToggleRecording}
-          aria-label={props.recording ? "Stop recording (Alt+V)" : "Record (Alt+V)"}
-          aria-pressed={props.recording}
-        >
-          <MicIcon className="size-4" />
-        </button>
-      ) : null}
+return (
+  <div className="flex items-center gap-1.5">
+    {props.ttsEnabled ? (
       <button
-        type="submit"
-        className="flex h-9 w-9 enabled:cursor-pointer items-center justify-center rounded-full bg-primary/90 text-primary-foreground shadow-xs enabled:shadow-primary/24 enabled:inset-shadow-[0_1px_--theme(--color-white/16%)] transition-all duration-150 hover:bg-primary hover:scale-105 active:inset-shadow-[0_1px_--theme(--color-black/8%)] active:shadow-none disabled:pointer-events-none disabled:opacity-30 disabled:shadow-none disabled:hover:scale-100 sm:h-8 sm:w-8"
+        type="button"
+        className="flex size-8 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:text-foreground/80"
         {...pointerFocusProps}
-        disabled={isSendBusy || isConnecting || isEnvironmentUnavailable || !hasSendableContent}
-        aria-label={
-          isEnvironmentUnavailable
-            ? "Environment disconnected"
-            : isConnecting
-              ? "Connecting"
-              : isPreparingWorktree
-                ? "Preparing worktree"
-                : isSendBusy
-                  ? "Sending"
-                  : "Send message"
-        }
+        onClick={props.onToggleMute}
+        aria-label={props.ttsMuted ? "Speak replies" : "Mute replies"}
+        aria-pressed={!props.ttsMuted}
       >
-        {isConnecting || isSendBusy ? (
-          <Spinner className="size-3.5" aria-hidden="true" />
-        ) : (
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-            <path
-              d="M7 11.5V2.5M7 2.5L3 6.5M7 2.5L11 6.5"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        )}
+        {props.ttsMuted ? <VolumeXIcon className="size-4" /> : <Volume2Icon className="size-4" />}
       </button>
-    </div>
-  );
+    ) : null}
+    {props.sttEnabled ? (
+      <button
+        type="button"
+        className={cn(
+          "flex h-9 w-9 cursor-pointer items-center justify-center rounded-full transition-all duration-150 hover:scale-105 sm:h-8 sm:w-8",
+          props.recording
+            ? "animate-pulse bg-red-500 text-white shadow-xs shadow-red-500/30"
+            : "bg-primary/90 text-primary-foreground shadow-xs enabled:shadow-primary/24 hover:bg-primary",
+        )}
+        {...pointerFocusProps}
+        onClick={props.onToggleRecording}
+        aria-label={props.recording ? "Stop recording (Alt+V)" : "Record (Alt+V)"}
+        aria-pressed={props.recording}
+      >
+        <MicIcon className="size-4" />
+      </button>
+    ) : null}
+    <button
+      type="submit"
+      className="flex h-9 w-9 enabled:cursor-pointer items-center justify-center rounded-full bg-primary/90 text-primary-foreground shadow-xs enabled:shadow-primary/24 enabled:inset-shadow-[0_1px_--theme(--color-white/16%)] transition-all duration-150 hover:bg-primary hover:scale-105 active:inset-shadow-[0_1px_--theme(--color-black/8%)] active:shadow-none disabled:pointer-events-none disabled:opacity-30 disabled:shadow-none disabled:hover:scale-100 sm:h-8 sm:w-8"
+      {...pointerFocusProps}
+      disabled={isSendBusy || isConnecting || isEnvironmentUnavailable || !hasSendableContent}
+      aria-label={
+        isEnvironmentUnavailable
+          ? "Environment disconnected"
+          : isConnecting
+            ? "Connecting"
+            : isPreparingWorktree
+              ? "Preparing worktree"
+              : isSendBusy
+                ? "Sending"
+                : "Send message"
+      }
+    >
+      {isConnecting || isSendBusy ? (
+        <Spinner className="size-3.5" aria-hidden="true" />
+      ) : (
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+          <path
+            d="M7 11.5V2.5M7 2.5L3 6.5M7 2.5L11 6.5"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
+    </button>
+  </div>
+);
 ```
 
 Add `MicIcon, Volume2Icon, VolumeXIcon` to the `lucide-react` import.
@@ -759,10 +777,10 @@ Add `MicIcon, Volume2Icon, VolumeXIcon` to the `lucide-react` import.
 In `ChatComposer.tsx`, `ComposerFooterPrimaryActions` (props type + passthrough) gains the same six props; at its render site read them from the store/settings:
 
 ```ts
-  const recording = useVoiceStore((s) => s.recording);
-  const ttsMuted = useVoiceStore((s) => s.ttsMuted);
-  const toggleRecording = useVoiceStore((s) => s.toggleRecording);
-  const toggleTtsMuted = useVoiceStore((s) => s.toggleTtsMuted);
+const recording = useVoiceStore((s) => s.recording);
+const ttsMuted = useVoiceStore((s) => s.ttsMuted);
+const toggleRecording = useVoiceStore((s) => s.toggleRecording);
+const toggleTtsMuted = useVoiceStore((s) => s.toggleTtsMuted);
 ```
 
 Pass `sttEnabled={settings.speech.sttEnabled}`, `ttsEnabled={settings.speech.ttsEnabled}`, `recording={recording}`, `ttsMuted={ttsMuted}`, `onToggleRecording={toggleRecording}`, `onToggleMute={toggleTtsMuted}` down to `ComposerPrimaryActions`.
@@ -785,10 +803,12 @@ git commit -m "feat(voice): inline mic + mute buttons in composer"
 ### Task 8: Per-message "Listen" button
 
 **Files:**
+
 - Create: `apps/web/src/components/chat/AssistantListenButton.tsx`
 - Modify: `apps/web/src/components/chat/MessagesTimeline.tsx` (hover-action row in `AssistantTimelineRow`, ~line 999, beside `<AssistantCopyButton />`)
 
 **Interfaces:**
+
 - Consumes: `useVoiceTts` (Task 5), `primaryServerSettingsAtom`, `markdownToSpeakable`, `Button`, `Volume2Icon`.
 - Produces: `<AssistantListenButton text={row.message.text} />`.
 
@@ -829,7 +849,7 @@ export function AssistantListenButton({ text }: { text: string }) {
 In `MessagesTimeline.tsx` `AssistantTimelineRow`, inside the action `<div>` (the one with `group-hover/assistant:opacity-100`, ~line 997), add after `<AssistantCopyButton row={row} />`:
 
 ```tsx
-            <AssistantListenButton text={row.message.text} />
+<AssistantListenButton text={row.message.text} />
 ```
 
 Import it at the top of the file. Guard is internal, so it can render unconditionally; it renders `null` when `ttsEnabled` is false.
@@ -852,9 +872,11 @@ git commit -m "feat(voice): per-message Listen button"
 ### Task 9: Alt+V dispatch
 
 **Files:**
+
 - Modify: `apps/web/src/components/ChatView.tsx` (the `resolveShortcutCommand` keydown handler)
 
 **Interfaces:**
+
 - Consumes: `useVoiceStore`, `resolveShortcutCommand` (existing), `settings.speech.sttEnabled`.
 
 - [ ] **Step 1: Add the dispatch branch**
@@ -862,13 +884,13 @@ git commit -m "feat(voice): per-message Listen button"
 In the keydown handler where other commands are handled, add:
 
 ```ts
-    if (command === "voice.toggleRecording") {
-      if (!settings.speech.sttEnabled) return;
-      event.preventDefault();
-      event.stopPropagation();
-      useVoiceStore.getState().toggleRecording();
-      return;
-    }
+if (command === "voice.toggleRecording") {
+  if (!settings.speech.sttEnabled) return;
+  event.preventDefault();
+  event.stopPropagation();
+  useVoiceStore.getState().toggleRecording();
+  return;
+}
 ```
 
 Import `useVoiceStore` from `~/voice/useVoiceStore`. Ensure `settings` (or the equivalent settings atom already used in ChatView) is in scope; if the handler closes over a `keybindings`/settings value, add `settings.speech.sttEnabled` usage without breaking the effect deps (add `settings` to the dep array if required).
@@ -910,6 +932,7 @@ Expected: all PASS.
 - [ ] **Step 4: Manual end-to-end (dev server running)**
 
 Verify each, on `http://localhost:<web port>`:
+
 1. Mic button is round, sits next to Send, same color when idle; red + pulsing while recording.
 2. Speaking inserts transcribed text at the caret; moving the caret and dictating inserts at the new spot; leading spaces are correct.
 3. Only two states (click or Alt+V toggles; no mode toggle UI remains).

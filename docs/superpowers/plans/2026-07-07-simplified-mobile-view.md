@@ -24,6 +24,7 @@
 ## File Structure
 
 **Create:**
+
 - `apps/web/src/components/simplified/useSimplifiedMode.ts` — resolution hook.
 - `apps/web/src/components/simplified/useSimplifiedMode.test.ts`
 - `apps/web/src/components/simplified/simplifiedNavigation.ts` — nav helper.
@@ -37,6 +38,7 @@
 - `apps/web/src/components/simplified/SimplifiedThreadScreen.tsx` — 3A/1C tab host.
 
 **Modify:**
+
 - `packages/contracts/src/settings.ts` — add `simplifiedMobileView` to `ClientSettingsSchema` and `ClientSettingsPatch`.
 - `apps/web/src/routes/__root.tsx` — `validateSearch`, `search.middlewares`, shell swap.
 - `apps/web/src/components/settings/SettingsPanels.tsx` — toggle row.
@@ -49,10 +51,12 @@
 ### Task 1: Add `simplifiedMobileView` client setting to contracts
 
 **Files:**
+
 - Modify: `packages/contracts/src/settings.ts:42-95` (schema), `:654-690` (patch)
 - Test: `packages/contracts/src/settings.simplified.test.ts` (create)
 
 **Interfaces:**
+
 - Produces: `ClientSettings.simplifiedMobileView: boolean` (default `false`); `ClientSettingsPatch.simplifiedMobileView?: boolean`.
 
 - [ ] **Step 1: Write the failing test**
@@ -111,10 +115,12 @@ git commit -m "feat(contracts): add simplifiedMobileView client setting"
 ### Task 2: `useSimplifiedMode` resolution hook
 
 **Files:**
+
 - Create: `apps/web/src/components/simplified/useSimplifiedMode.ts`
 - Test: `apps/web/src/components/simplified/useSimplifiedMode.test.ts`
 
 **Interfaces:**
+
 - Consumes: `ClientSettings.simplifiedMobileView` (Task 1); `useClientSettings` from `~/hooks/useSettings`.
 - Produces:
   - `parseSimplifiedSearch(raw: unknown): boolean | undefined` — lenient parser.
@@ -180,10 +186,7 @@ export function parseSimplifiedSearch(raw: unknown): boolean | undefined {
 }
 
 /** Param wins when present; otherwise fall back to the persisted setting. */
-export function resolveSimplifiedMode(
-  param: boolean | undefined,
-  setting: boolean,
-): boolean {
+export function resolveSimplifiedMode(param: boolean | undefined, setting: boolean): boolean {
   return param ?? setting;
 }
 
@@ -215,9 +218,11 @@ git commit -m "feat(web): add useSimplifiedMode resolution hook"
 ### Task 3: Root search schema + retain-across-navigation middleware
 
 **Files:**
+
 - Modify: `apps/web/src/routes/__root.tsx:55-83`
 
 **Interfaces:**
+
 - Consumes: `parseSimplifiedSearch` (Task 2).
 - Produces: root search type `{ simplified?: boolean }`, retained on every navigation.
 
@@ -273,9 +278,11 @@ git commit -m "feat(web): add simplified root search param retained across navig
 ### Task 4: Simplified navigation helper
 
 **Files:**
+
 - Create: `apps/web/src/components/simplified/simplifiedNavigation.ts`
 
 **Interfaces:**
+
 - Produces:
   - `useSimplifiedNavigate(): (opts: NavigateOptions) => void` — wraps `useNavigate`, always retaining `simplified` (middleware already does this, but this makes intra-shell links explicit and future-proof).
   - Re-exports a typed `SimplifiedLink` if needed by screens.
@@ -322,10 +329,12 @@ git commit -m "feat(web): add simplified navigation helper"
 ### Task 5: `SimplifiedLayout` shell + root swap
 
 **Files:**
+
 - Create: `apps/web/src/components/simplified/SimplifiedLayout.tsx`
 - Modify: `apps/web/src/routes/__root.tsx:117-123`
 
 **Interfaces:**
+
 - Consumes: `useSimplifiedMode` (Task 2).
 - Produces: `SimplifiedLayout` component wrapping `children` in a mobile-safe full-height column.
 
@@ -354,7 +363,7 @@ export function SimplifiedLayout({ children }: { children: ReactNode }) {
 In `RootRouteView`, add near the top of the component body (after the existing hooks, before the `/pair` check is fine since simplified only matters for the authenticated shell):
 
 ```ts
-  const simplified = useSimplifiedMode();
+const simplified = useSimplifiedMode();
 ```
 
 Add the import:
@@ -367,19 +376,19 @@ import { useSimplifiedMode } from "../components/simplified/useSimplifiedMode";
 Replace the `appShell` definition (currently lines 117-123):
 
 ```tsx
-  const appShell = simplified ? (
-    <CommandPalette>
-      <SimplifiedLayout>
-        <Outlet />
-      </SimplifiedLayout>
-    </CommandPalette>
-  ) : (
-    <CommandPalette>
-      <AppSidebarLayout>
-        <Outlet />
-      </AppSidebarLayout>
-    </CommandPalette>
-  );
+const appShell = simplified ? (
+  <CommandPalette>
+    <SimplifiedLayout>
+      <Outlet />
+    </SimplifiedLayout>
+  </CommandPalette>
+) : (
+  <CommandPalette>
+    <AppSidebarLayout>
+      <Outlet />
+    </AppSidebarLayout>
+  </CommandPalette>
+);
 ```
 
 - [ ] **Step 3: Typecheck + manual verify**
@@ -399,9 +408,11 @@ git commit -m "feat(web): swap to bare SimplifiedLayout when simplified mode act
 ### Task 6: Settings → General toggle
 
 **Files:**
+
 - Modify: `apps/web/src/components/settings/SettingsPanels.tsx` (inside `GeneralSettingsPanel`, near the `wordWrap` `SettingsRow` at ~588-616)
 
 **Interfaces:**
+
 - Consumes: `simplifiedMobileView` client setting (Task 1); `useSimplifiedNavigate` (Task 4); existing `usePrimarySettings`/`useUpdatePrimarySettings` in the panel.
 - Produces: a `SettingsRow` toggle that persists the setting and mirrors it into the URL param.
 
@@ -416,7 +427,7 @@ import { useSimplifiedNavigate } from "../simplified/simplifiedNavigation";
 At the top of `GeneralSettingsPanel` (where `settings` and `updateSettings` are already obtained), add:
 
 ```ts
-  const simplifiedNavigate = useSimplifiedNavigate();
+const simplifiedNavigate = useSimplifiedNavigate();
 ```
 
 `settings.simplifiedMobileView` is already available via the merged `usePrimarySettings()` value (client keys are merged in).
@@ -426,37 +437,37 @@ At the top of `GeneralSettingsPanel` (where `settings` and `updateSettings` are 
 Immediately after the `Word wrap` `SettingsRow` block, add:
 
 ```tsx
-        <SettingsRow
-          title="Simplified mobile view"
-          description="Replace the app with a compact, voice-first mobile layout. Adds ?simplified=true to the URL so it persists and can be shared."
-          resetAction={
-            settings.simplifiedMobileView !== DEFAULT_UNIFIED_SETTINGS.simplifiedMobileView ? (
-              <SettingResetButton
-                label="simplified mobile view"
-                onClick={() => {
-                  updateSettings({
-                    simplifiedMobileView: DEFAULT_UNIFIED_SETTINGS.simplifiedMobileView,
-                  });
-                  simplifiedNavigate({ to: ".", search: (prev) => ({ ...prev, simplified: undefined }) });
-                }}
-              />
-            ) : null
-          }
-          control={
-            <Switch
-              checked={settings.simplifiedMobileView}
-              onCheckedChange={(checked) => {
-                const next = Boolean(checked);
-                updateSettings({ simplifiedMobileView: next });
-                simplifiedNavigate({
-                  to: ".",
-                  search: (prev) => ({ ...prev, simplified: next ? true : undefined }),
-                });
-              }}
-              aria-label="Enable simplified mobile view"
-            />
-          }
-        />
+<SettingsRow
+  title="Simplified mobile view"
+  description="Replace the app with a compact, voice-first mobile layout. Adds ?simplified=true to the URL so it persists and can be shared."
+  resetAction={
+    settings.simplifiedMobileView !== DEFAULT_UNIFIED_SETTINGS.simplifiedMobileView ? (
+      <SettingResetButton
+        label="simplified mobile view"
+        onClick={() => {
+          updateSettings({
+            simplifiedMobileView: DEFAULT_UNIFIED_SETTINGS.simplifiedMobileView,
+          });
+          simplifiedNavigate({ to: ".", search: (prev) => ({ ...prev, simplified: undefined }) });
+        }}
+      />
+    ) : null
+  }
+  control={
+    <Switch
+      checked={settings.simplifiedMobileView}
+      onCheckedChange={(checked) => {
+        const next = Boolean(checked);
+        updateSettings({ simplifiedMobileView: next });
+        simplifiedNavigate({
+          to: ".",
+          search: (prev) => ({ ...prev, simplified: next ? true : undefined }),
+        });
+      }}
+      aria-label="Enable simplified mobile view"
+    />
+  }
+/>
 ```
 
 - [ ] **Step 4: Typecheck + manual verify**
@@ -476,10 +487,12 @@ git commit -m "feat(web): add simplified mobile view toggle to General settings"
 ### Task 7: Sessions status-grouping logic (pure)
 
 **Files:**
+
 - Create: `apps/web/src/components/simplified/sessionsGrouping.ts`
 - Test: `apps/web/src/components/simplified/sessionsGrouping.test.ts`
 
 **Interfaces:**
+
 - Consumes: `EnvironmentThreadShell` fields (`session`, `hasPendingUserInput`, `hasPendingApprovals`, `hasActionableProposedPlan`, `updatedAt`).
 - Produces:
   - `type SessionGroupKey = "needsYou" | "running" | "done"`.
@@ -606,9 +619,11 @@ git commit -m "feat(web): add session status grouping logic for simplified home"
 ### Task 8: Shared simplified UI primitives
 
 **Files:**
+
 - Create: `apps/web/src/components/simplified/SimplifiedPrimitives.tsx`
 
 **Interfaces:**
+
 - Consumes: `cn` from `~/lib/utils`; lucide icons.
 - Produces (all presentational, token-only):
   - `SimplifiedHeader({ title, subtitle, left, right })`
@@ -644,20 +659,14 @@ export function SimplifiedHeader({
       {left}
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-semibold text-foreground">{title}</div>
-        {subtitle ? (
-          <div className="truncate text-xs text-muted-foreground">{subtitle}</div>
-        ) : null}
+        {subtitle ? <div className="truncate text-xs text-muted-foreground">{subtitle}</div> : null}
       </div>
       {right}
     </header>
   );
 }
 
-export function SessionStatusDot({
-  variant,
-}: {
-  variant: "needsYou" | "running" | "done";
-}) {
+export function SessionStatusDot({ variant }: { variant: "needsYou" | "running" | "done" }) {
   return (
     <span
       className={cn(
@@ -821,9 +830,11 @@ git commit -m "feat(web): add shared simplified UI primitives"
 ### Task 9: Sessions home screen (2A)
 
 **Files:**
+
 - Create: `apps/web/src/components/simplified/SessionsHomeScreen.tsx`
 
 **Interfaces:**
+
 - Consumes: `useThreadShells` from `~/state/entities`; `groupSessionsByStatus`, `classifySession` (Task 7); primitives (Task 8); `useSimplifiedNavigate` (Task 4); `useActiveEnvironmentId`.
 - Produces: `SessionsHomeScreen` (default-exported component) rendering greeting header (settings gear), Sessions/Projects tab, grouped list, and a voice CTA that opens a project picker sheet.
 
@@ -838,16 +849,8 @@ import { useMemo, useState } from "react";
 
 import { useThreadShells } from "~/state/entities";
 import { useSimplifiedNavigate } from "./simplifiedNavigation";
-import {
-  SectionHeader,
-  SessionCard,
-  SimplifiedTabBar,
-} from "./SimplifiedPrimitives";
-import {
-  classifySession,
-  groupSessionsByStatus,
-  type SessionGroupKey,
-} from "./sessionsGrouping";
+import { SectionHeader, SessionCard, SimplifiedTabBar } from "./SimplifiedPrimitives";
+import { classifySession, groupSessionsByStatus, type SessionGroupKey } from "./sessionsGrouping";
 
 const GROUP_LABELS: Record<SessionGroupKey, string> = {
   needsYou: "Needs you",
@@ -870,13 +873,10 @@ export default function SessionsHomeScreen() {
   const navigate = useSimplifiedNavigate();
   const [tab, setTab] = useState<"sessions" | "projects">("sessions");
 
-  const grouped = useMemo(
-    () => groupSessionsByStatus(threads, 0),
-    [threads],
-  );
+  const grouped = useMemo(() => groupSessionsByStatus(threads, 0), [threads]);
 
   const byProject = useMemo(() => {
-    const map = new Map<string, typeof threads[number][]>();
+    const map = new Map<string, (typeof threads)[number][]>();
     for (const thread of threads) {
       const key = thread.projectId as unknown as string;
       const list = map.get(key) ?? [];
@@ -1002,11 +1002,13 @@ git commit -m "feat(web): add simplified sessions home screen (2A)"
 ### Task 10: Transcript + Voice screens and thread host (1C / 3A)
 
 **Files:**
+
 - Create: `apps/web/src/components/simplified/TranscriptScreen.tsx`
 - Create: `apps/web/src/components/simplified/VoiceConversationScreen.tsx`
 - Create: `apps/web/src/components/simplified/SimplifiedThreadScreen.tsx`
 
 **Interfaces:**
+
 - Consumes: `useThreadMessages`, `useThreadShell` from `~/state/entities`; `ScopedThreadRef`; primitives (Task 8); `useSimplifiedNavigate`; `useVoiceStore` from `~/voice/useVoiceStore`.
 - Produces:
   - `TranscriptScreen({ threadRef })` — 1C.
@@ -1031,9 +1033,7 @@ export function TranscriptScreen({ threadRef }: { threadRef: ScopedThreadRef }) 
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
         {messages.length === 0 ? (
-          <div className="py-16 text-center text-sm text-muted-foreground">
-            No messages yet.
-          </div>
+          <div className="py-16 text-center text-sm text-muted-foreground">No messages yet.</div>
         ) : (
           messages
             .filter((m) => m.role === "user" || m.role === "assistant")
@@ -1064,9 +1064,7 @@ export function VoiceConversationScreen({ threadRef }: { threadRef: ScopedThread
   const recording = useVoiceStore((s) => s.recording);
   const toggleRecording = useVoiceStore((s) => s.toggleRecording);
 
-  const latestAssistant = [...messages]
-    .reverse()
-    .find((m) => m.role === "assistant");
+  const latestAssistant = [...messages].reverse().find((m) => m.role === "assistant");
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -1102,11 +1100,7 @@ import { SimplifiedHeader } from "./SimplifiedPrimitives";
 import { TranscriptScreen } from "./TranscriptScreen";
 import { VoiceConversationScreen } from "./VoiceConversationScreen";
 
-export default function SimplifiedThreadScreen({
-  threadRef,
-}: {
-  threadRef: ScopedThreadRef;
-}) {
+export default function SimplifiedThreadScreen({ threadRef }: { threadRef: ScopedThreadRef }) {
   const shell = useThreadShell(threadRef);
   const navigate = useSimplifiedNavigate();
   const [view, setView] = useState<"voice" | "transcript">("voice");
@@ -1168,11 +1162,13 @@ git commit -m "feat(web): add simplified transcript, voice, and thread host scre
 ### Task 11: Route branching (wire screens into existing routes)
 
 **Files:**
+
 - Modify: `apps/web/src/routes/_chat.index.tsx`
 - Modify: `apps/web/src/routes/_chat.$environmentId.$threadId.tsx`
 - Modify: `apps/web/src/routes/_chat.draft.$draftId.tsx`
 
 **Interfaces:**
+
 - Consumes: `useSimplifiedMode` (Task 2); `SessionsHomeScreen` (Task 9); `SimplifiedThreadScreen` (Task 10); existing `resolveThreadRouteRef`.
 
 - [ ] **Step 1: Branch `_chat.index.tsx`**
@@ -1187,10 +1183,10 @@ import SessionsHomeScreen from "../components/simplified/SessionsHomeScreen";
 At the top of `ChatIndexRouteView`, before the existing returns:
 
 ```tsx
-  const simplified = useSimplifiedMode();
-  if (simplified) {
-    return <SessionsHomeScreen />;
-  }
+const simplified = useSimplifiedMode();
+if (simplified) {
+  return <SessionsHomeScreen />;
+}
 ```
 
 - [ ] **Step 2: Branch the thread route**
@@ -1205,10 +1201,10 @@ import SimplifiedThreadScreen from "../components/simplified/SimplifiedThreadScr
 In `ChatThreadRouteView`, after `threadRef` is resolved and before the normal render, add:
 
 ```tsx
-  const simplified = useSimplifiedMode();
-  if (simplified && threadRef) {
-    return <SimplifiedThreadScreen threadRef={threadRef} />;
-  }
+const simplified = useSimplifiedMode();
+if (simplified && threadRef) {
+  return <SimplifiedThreadScreen threadRef={threadRef} />;
+}
 ```
 
 (Place this after the existing hooks so hook order stays stable; the early return is after all hooks are called — move it to just before the final `return` of the component, guarded by `threadRef`.)
@@ -1218,14 +1214,14 @@ In `ChatThreadRouteView`, after `threadRef` is resolved and before the normal re
 In `apps/web/src/routes/_chat.draft.$draftId.tsx`, mirror Step 2: when `simplified` is on, render `SimplifiedThreadScreen` with the draft's resolved `ScopedThreadRef` (use the same ref resolution the file already performs). If the draft has no server ref yet, render `SessionsHomeScreen` as a safe fallback:
 
 ```tsx
-  const simplified = useSimplifiedMode();
-  if (simplified) {
-    return draftThreadRef ? (
-      <SimplifiedThreadScreen threadRef={draftThreadRef} />
-    ) : (
-      <SessionsHomeScreen />
-    );
-  }
+const simplified = useSimplifiedMode();
+if (simplified) {
+  return draftThreadRef ? (
+    <SimplifiedThreadScreen threadRef={draftThreadRef} />
+  ) : (
+    <SessionsHomeScreen />
+  );
+}
 ```
 
 Add the matching imports at the top.
@@ -1256,10 +1252,12 @@ git commit -m "feat(web): render simplified screens on chat routes when active"
 - [ ] **Step 1: Run all new unit tests**
 
 Run:
+
 ```bash
 pnpm --filter @t3tools/contracts vitest run src/settings.simplified.test.ts
 pnpm --filter @t3tools/web vitest run src/components/simplified
 ```
+
 Expected: all PASS.
 
 - [ ] **Step 2: Typecheck + lint the whole workspace**
@@ -1270,6 +1268,7 @@ Expected: clean (no new errors).
 - [ ] **Step 3: Manual end-to-end (dev server)**
 
 Run `pnpm --filter @t3tools/web dev`, then verify each acceptance criterion:
+
 1. `/?simplified=true` → bare mobile shell, Sessions home (2A) with grouped sessions.
 2. Tap a session → thread screen opens in voice view (3A); URL keeps `?simplified=true`.
 3. Toggle the header button → transcript view (1C) shows message bubbles; toggle back → 3A.
@@ -1291,6 +1290,7 @@ git commit -m "test(web): verify simplified mobile view end-to-end"
 ## Self-Review
 
 **Spec coverage:**
+
 - Query param `simplified=true` → Tasks 3 (schema/middleware), 2 (parse/resolve). ✓
 - Persist during navigation → Task 3 (`retainSearchParams`) + Task 4 helper. ✓
 - Settings/General toggle → Tasks 1 (contract), 6 (UI). ✓
@@ -1308,6 +1308,7 @@ git commit -m "test(web): verify simplified mobile view end-to-end"
 **Type consistency:** `SessionGroupKey`/`classifySession`/`groupSessionsByStatus` names consistent across Tasks 7, 9. `parseSimplifiedSearch`/`resolveSimplifiedMode`/`useSimplifiedMode` consistent across Tasks 2, 3, 6, 11. `SimplifiedThreadScreen`/`SessionsHomeScreen` default exports match their import sites in Task 11. `ScopedThreadRef` used consistently in Task 10.
 
 **Known verification points flagged for the implementer (resolve during typecheck, not placeholders):**
+
 - `useVoiceStore` selector names (`recording`, `toggleRecording`) — confirm and adapt if the store exposes different names (Task 10 Step 4).
 - Draft route's existing `ScopedThreadRef` resolution variable name (`draftThreadRef`) — match the file's actual identifier (Task 11 Step 3).
 - Rules-of-hooks: keep `useSimplifiedMode()` with the other top-level hooks; only the `return` is conditional (Task 11 Step 4).

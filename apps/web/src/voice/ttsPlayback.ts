@@ -50,11 +50,10 @@ export class TtsPlaybackController {
     const promise = synthesizeSpeech(text, {
       ...(this.callbacks.getVoice?.() ? { voice: this.callbacks.getVoice()! } : {}),
       signal: abort.signal,
-    })
-      .catch((error) => {
-        if (!abort.signal.aborted) this.callbacks.onError?.(error);
-        return null;
-      });
+    }).catch((error) => {
+      if (!abort.signal.aborted) this.callbacks.onError?.(error);
+      return null;
+    });
     this.units.set(index, { promise, abort });
     void this.pump();
   }

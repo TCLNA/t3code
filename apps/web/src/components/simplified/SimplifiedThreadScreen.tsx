@@ -8,11 +8,7 @@ import { SimplifiedHeader } from "./SimplifiedPrimitives";
 import { TranscriptScreen } from "./TranscriptScreen";
 import { VoiceConversationScreen } from "./VoiceConversationScreen";
 
-export default function SimplifiedThreadScreen({
-  threadRef,
-}: {
-  threadRef: ScopedThreadRef;
-}) {
+export default function SimplifiedThreadScreen({ threadRef }: { threadRef: ScopedThreadRef }) {
   const shell = useThreadShell(threadRef);
   const navigate = useSimplifiedNavigate();
   const [view, setView] = useState<"voice" | "transcript">("voice");

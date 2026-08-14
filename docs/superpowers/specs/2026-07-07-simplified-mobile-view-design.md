@@ -65,7 +65,7 @@ standby as a possible follow-up).
 
 - TanStack search params are **not** inherited by default. Add root-level
   search **middleware** (`search.middlewares`, e.g. `retainSearchParams
-  (['simplified'])`) so the param is carried across all navigations
+(['simplified'])`) so the param is carried across all navigations
   automatically, plus a `useSimplifiedNavigate()` / `<SimplifiedLink>` helper
   used by simplified-screen navigation to be explicit.
 - When the client setting is `true` but the URL lacks the param, the resolver
@@ -102,12 +102,12 @@ available to the simplified screens.
 
 Existing chat routes branch on `useSimplifiedMode()`:
 
-| Route | Normal | Simplified |
-|---|---|---|
-| `_chat.index` | empty state | **2A — Sessions home** |
-| `_chat.$environmentId.$threadId` | `ChatView` | **3A / 1C** (in-view tab toggle) |
-| `_chat.draft.$draftId` | draft `ChatView` | **3A** (new/draft session voice view) |
-| `settings.*` | settings panels | unchanged (reachable from 2A gear) |
+| Route                            | Normal           | Simplified                            |
+| -------------------------------- | ---------------- | ------------------------------------- |
+| `_chat.index`                    | empty state      | **2A — Sessions home**                |
+| `_chat.$environmentId.$threadId` | `ChatView`       | **3A / 1C** (in-view tab toggle)      |
+| `_chat.draft.$draftId`           | draft `ChatView` | **3A** (new/draft session voice view) |
+| `settings.*`                     | settings panels  | unchanged (reachable from 2A gear)    |
 
 3A and 1C are two tabs of the same thread route, matching the mockup's
 reciprocal "open chat view" / "open voice view" buttons. Tab state is local
@@ -146,7 +146,7 @@ server contracts.
 - List: `useThreadShells()` / `useThreadShellsForProjectRefs()`.
 - **Group by status** (default tab):
   - **Needs you** — `thread.hasPendingUserInput || thread.hasPendingApprovals
-    || thread.hasActionableProposedPlan`.
+|| thread.hasActionableProposedPlan`.
   - **Running** — `thread.session?.status === "running" | "starting"`.
   - **Done today** — no active session and `updatedAt` within today.
   - Reuse status-derivation helpers from
@@ -162,7 +162,7 @@ server contracts.
 ### 1C — Transcript
 
 - `useThreadMessages(ref)` → `OrchestrationMessage { role, text, attachments,
-  createdAt, ... }` rendered as bubbles: `role === "user"` right-aligned,
+createdAt, ... }` rendered as bubbles: `role === "user"` right-aligned,
   `assistant` left-aligned.
 - Interleave step/action rows from `useThreadActivities(ref)`.
 - Bottom listening bar reuses `useVoiceDictation` + `useVoiceStore` for mic

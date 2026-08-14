@@ -1,6 +1,13 @@
 import { useAtomValue } from "@effect/atom-react";
+import { useNotificationSounds } from "~/voice/useNotificationSounds";
 import * as Schema from "effect/Schema";
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  useEffect,
+  useState,
+  useSyncExternalStore,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 
 import { isElectron } from "../env";
@@ -8,10 +15,16 @@ import { getLocalStorageItem } from "../hooks/useLocalStorage";
 import { resolveShortcutCommand, shortcutLabelForCommand } from "../keybindings";
 import { cn, isMacPlatform } from "../lib/utils";
 import { primaryServerKeybindingsAtom } from "../state/server";
-import { useClientSettings } from "../hooks/useSettings";
+import { useEnvironmentIdentificationMode, useLegacySidebarEnabled } from "../hooks/useSettings";
+import LegacyThreadSidebar from "./LegacySidebar";
 import ThreadSidebar from "./Sidebar";
-import ThreadSidebarV2 from "./SidebarV2";
-import { useSidebarStageBackdropVariant } from "./SidebarStageBackdrop";
+import { SettingsSidebarNav } from "./settings/SettingsSidebarNav";
+import { SidebarChromeHeader } from "./sidebar/SidebarChrome";
+import {
+  resolveSidebarStageFocusRingOffsetClass,
+  useSidebarStageBackdropVariant,
+} from "./SidebarStageBackdrop";
+import { useProjects } from "../state/entities";
 import {
   resolveInitialThreadSidebarWidth,
   resolveThreadSidebarMaximumWidth,
@@ -31,6 +44,15 @@ import { Tooltip, TooltipPopup, TooltipTrigger } from "./ui/tooltip";
 
 const MACOS_TRAFFIC_LIGHTS_LEFT_INSET = "90px";
 
+function subscribeToViewportWidth(onChange: () => void): () => void {
+  window.addEventListener("resize", onChange);
+  return () => window.removeEventListener("resize", onChange);
+}
+
+function readViewportWidth(): number {
+  return window.innerWidth;
+}
+
 function readInitialThreadSidebarWidth(): number {
   try {
     return resolveInitialThreadSidebarWidth(
@@ -47,7 +69,10 @@ function SidebarControl() {
   const keybindings = useAtomValue(primaryServerKeybindingsAtom);
   const { toggleSidebar } = useSidebar();
   const isSidebarVisible = useSidebarVisibility();
-  const stageBackdropVariant = useSidebarStageBackdropVariant();
+  const environmentIdentificationMode = useEnvironmentIdentificationMode();
+  const stageBackdropVariant = useSidebarStageBackdropVariant(
+    environmentIdentificationMode === "artwork",
+  );
   const shortcutLabel = shortcutLabelForCommand(keybindings, "sidebar.toggle");
 
   useEffect(() => {
@@ -84,7 +109,10 @@ function SidebarControl() {
                 "pointer-events-auto",
                 isSidebarVisible &&
                   stageBackdropVariant &&
-                  "[:hover,[data-pressed]]:bg-white/15 focus-visible:ring-white/90 focus-visible:ring-offset-blue-700 [&_svg]:stroke-white/90! [&_svg]:opacity-100! [&_svg]:hover:stroke-white!",
+                  "focus-visible:ring-white/90 [&_svg]:stroke-white/90! [&_svg]:opacity-100! [&_svg]:hover:stroke-white! [:hover,[data-pressed]]:bg-white/15",
+                isSidebarVisible &&
+                  stageBackdropVariant &&
+                  resolveSidebarStageFocusRingOffsetClass(stageBackdropVariant),
               )}
               aria-label="Toggle main sidebar"
             />
@@ -98,18 +126,31 @@ function SidebarControl() {
   );
 }
 
+// Settings swaps the thread sidebar out of the tree. Keep the lightweight
+// project projection subscribed so returning to a draft never renders the
+// zero-project state while the environment snapshot reconnects.
+function ProjectProjectionRetention() {
+  useProjects();
+  return null;
+}
+
 export function AppSidebarLayout({ children }: { children: ReactNode }) {
+  // Lives here rather than in a sidebar component so notification sounds keep
+  // working whichever of the two thread sidebars is active.
+  useNotificationSounds();
   const navigate = useNavigate();
-  const sidebarV2Enabled = useClientSettings((settings) => settings.sidebarV2Enabled);
-  // Settings routes render the settings nav, which lives in the v1 component
-  // and is identical for both sidebars — so v1 stays mounted there.
+  const legacySidebarEnabled = useLegacySidebarEnabled();
+  // Settings routes show the settings nav in place of whichever thread
+  // sidebar is active.
   const pathname = useLocation({ select: (location) => location.pathname });
   const isOnSettings = pathname === "/settings" || pathname.startsWith("/settings/");
-  const useSidebarV2 = sidebarV2Enabled && !isOnSettings;
-  const useSidebarV2Theme = useSidebarV2 || isOnSettings;
   const isMacosDesktop = isElectron && isMacPlatform(navigator.platform);
   const [sidebarWidth, setSidebarWidth] = useState(readInitialThreadSidebarWidth);
-  const sidebarMaximumWidth = resolveThreadSidebarMaximumWidth(window.innerWidth);
+  // Subscribed rather than read once: the clamp must track live window size,
+  // and a clamped drag ends with an unchanged width, which skips the re-render
+  // that would otherwise refresh a render-time snapshot.
+  const viewportWidth = useSyncExternalStore(subscribeToViewportWidth, readViewportWidth);
+  const sidebarMaximumWidth = resolveThreadSidebarMaximumWidth(viewportWidth);
   const [isWindowFullscreen, setIsWindowFullscreen] = useState(() => {
     const getWindowFullscreenState = window.desktopBridge?.getWindowFullscreenState;
     return isMacosDesktop && typeof getWindowFullscreenState === "function"
@@ -162,11 +203,11 @@ export function AppSidebarLayout({ children }: { children: ReactNode }) {
 
   return (
     <SidebarProvider className="h-dvh! min-h-0!" defaultOpen style={sidebarProviderStyle}>
+      <ProjectProjectionRetention />
       <Sidebar
         side="left"
         collapsible="offcanvas"
         data-app-sidebar=""
-        data-sidebar-version={useSidebarV2Theme ? "v2" : "v1"}
         className="border-r border-sidebar-border bg-sidebar text-sidebar-foreground"
         resizable={{
           maxWidth: sidebarMaximumWidth,
@@ -178,7 +219,16 @@ export function AppSidebarLayout({ children }: { children: ReactNode }) {
           onResize: setSidebarWidth,
         }}
       >
-        {useSidebarV2 ? <ThreadSidebarV2 /> : <ThreadSidebar />}
+        {isOnSettings ? (
+          <>
+            <SidebarChromeHeader isElectron={isElectron} />
+            <SettingsSidebarNav pathname={pathname} />
+          </>
+        ) : legacySidebarEnabled ? (
+          <LegacyThreadSidebar />
+        ) : (
+          <ThreadSidebar />
+        )}
         <SidebarRail />
       </Sidebar>
       {children}

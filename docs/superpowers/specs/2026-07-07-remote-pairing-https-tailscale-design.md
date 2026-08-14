@@ -24,6 +24,7 @@ From a trusted device on the tailnet, open `https://<machine>.<tailnet>.ts.net`,
 Serve everything through **one HTTPS origin** fronted by Tailscale serve, and make the web client send its API/WS calls to **its own origin** (through the Vite proxy) instead of directly to `:13773`. Same-origin + `Secure` (HTTPS) → the cookie sticks on any device.
 
 Rejected alternatives:
+
 - **B (config only):** feed the tailnet URL into `VITE_HTTP_URL`/`VITE_WS_URL`. Brittle (must match exactly), and breaks `localhost` access from the same launch.
 - **C (bearer-token web client):** origin-agnostic but the largest change; abandons the cookie model for no benefit given trusted-device scope.
 
@@ -41,6 +42,7 @@ Browser ──https──▶ tailscale serve (:443, TLS) ──▶ Vite dev serv
 ## Changes
 
 ### Change 1 — client routes HTTP to its own origin (core fix)
+
 File: `apps/web/src/environments/primary/target.ts`, `resolveHttpRequestBaseUrl`.
 
 Replace the loopback gate with a "served by a dev server" signal. When `VITE_DEV_SERVER_URL` is set (the dev signal) and the configured target would be cross-origin from the current page, return `window.location.origin` (route through the Vite proxy) — for **any** host, not just loopback.
@@ -50,6 +52,7 @@ Replace the loopback gate with a "served by a dev server" signal. When `VITE_DEV
 - The `isLoopbackHostname` helper may become unused here; leave it if referenced elsewhere, otherwise remove.
 
 ### Change 2 — runtime WebSocket over the same HTTPS origin
+
 Files: `apps/web/vite.config.ts` (proxy + HMR), client `wsBaseUrl` resolution in `target.ts`.
 
 - Add a proxy entry for the app's runtime WebSocket path with `ws: true` → `http://127.0.0.1:13773` (confirm the exact WS path during planning; it is the path used by `Socket.layerWebSocket(connection.socketUrl, …)` in `packages/client-runtime/src/rpc/session.ts`).
@@ -57,21 +60,27 @@ Files: `apps/web/vite.config.ts` (proxy + HMR), client `wsBaseUrl` resolution in
 - Set Vite HMR to `protocol: "wss"`, `clientPort: 443` when served behind TLS so hot reload works through Tailscale. This must not regress plain-`localhost:5733` HMR — gate on the public-URL flag (Change 3).
 
 ### Change 3 — dev-runner `--public-url` flag
+
 File: `scripts/dev-runner.ts`.
 
 Add an optional `--public-url <https url>` flag (fallback config `T3CODE_PUBLIC_URL`). When set:
+
 - `VITE_DEV_SERVER_URL` and `VITE_WS_URL` are derived from it (`https://…` / `wss://…`).
 - Signals the TLS-fronted mode used to gate HMR `wss`/clientPort (Change 2).
 - `HOST`/`T3CODE_HOST` binding is unchanged (keep `0.0.0.0` so Tailscale + localhost both reach it).
 
 ### Change 4 — Tailscale serve setup (docs, no app code)
+
 Document (and optionally a helper script) the one-time setup:
+
 ```
 tailscale serve --bg --https=443 http://127.0.0.1:5733
 ```
+
 Note MagicDNS/HTTPS certs must be enabled on the tailnet. Add to the remote-dev docs.
 
 ### Server
+
 No change expected. CORS already allows the dev origin (`devOrigin` from `VITE_DEV_SERVER_URL`); once traffic is same-origin, CORS is moot for these calls. The cookie is already `SameSite=Lax`; same-origin + HTTPS makes it stick. Confirm during planning whether the cookie needs `Secure` set under HTTPS (it should be fine same-origin, but verify).
 
 ## Testing

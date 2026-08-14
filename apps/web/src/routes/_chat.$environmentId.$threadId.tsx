@@ -7,6 +7,7 @@ import SimplifiedThreadScreen from "../components/simplified/SimplifiedThreadScr
 import { useSimplifiedMode } from "../components/simplified/useSimplifiedMode";
 import { finalizePromotedDraftThreadByRef, useComposerDraftStore } from "../composerDraftStore";
 import { resolveThreadRouteRef, resolveThreadRouteRenderState } from "../threadRoutes";
+import { resolveThreadSyncPhase } from "../threadSync";
 import { SidebarInset } from "~/components/ui/sidebar";
 import {
   useEnvironmentThreadRefs,
@@ -50,6 +51,11 @@ function ChatThreadRouteView() {
     serverThreadDetailDeleted: serverThreadStatus === "deleted",
     draftThreadExists,
   });
+  const threadSyncPhase = resolveThreadSyncPhase({
+    detailExists: serverThreadDetail !== null,
+    shellExists: serverThreadShell !== null,
+    status: serverThreadStatus,
+  });
   const serverThreadStarted = threadHasStarted(serverThreadDetail);
   const environmentHasAnyThreads = environmentHasServerThreads || environmentHasDraftThreads;
   const simplified = useSimplifiedMode();
@@ -71,7 +77,7 @@ function ChatThreadRouteView() {
     finalizePromotedDraftThreadByRef(threadRef);
   }, [draftThread, serverThreadStarted, threadRef]);
 
-  if (!threadRef || renderState !== "ready") {
+  if (!threadRef) {
     return null;
   }
 
@@ -81,11 +87,14 @@ function ChatThreadRouteView() {
 
   return (
     <SidebarInset className="h-svh min-h-0 overflow-hidden overscroll-y-none bg-background text-foreground md:h-dvh">
-      <ChatView
-        environmentId={threadRef.environmentId}
-        threadId={threadRef.threadId}
-        routeKind="server"
-      />
+      {renderState === "ready" || (renderState === "loading" && serverThreadShell !== null) ? (
+        <ChatView
+          environmentId={threadRef.environmentId}
+          threadId={threadRef.threadId}
+          routeKind="server"
+          threadSyncPhase={threadSyncPhase}
+        />
+      ) : null}
     </SidebarInset>
   );
 }

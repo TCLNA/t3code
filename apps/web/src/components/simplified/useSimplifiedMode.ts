@@ -10,10 +10,7 @@ export function parseSimplifiedSearch(raw: unknown): boolean | undefined {
 }
 
 /** Param wins when present; otherwise fall back to the persisted setting. */
-export function resolveSimplifiedMode(
-  param: boolean | undefined,
-  setting: boolean,
-): boolean {
+export function resolveSimplifiedMode(param: boolean | undefined, setting: boolean): boolean {
   return param ?? setting;
 }
 

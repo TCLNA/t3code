@@ -15,10 +15,17 @@ Expand the sidebar TTS mute button into a popover dropdown that lets the user to
 
 ```ts
 export const KOKORO_VOICES = [
-  "af_heart", "af_bella", "af_nova", "af_sky", "af_sarah",
-  "am_adam", "am_michael",
-  "bf_emma", "bf_isabella",
-  "bm_george", "bm_lewis",
+  "af_heart",
+  "af_bella",
+  "af_nova",
+  "af_sky",
+  "af_sarah",
+  "am_adam",
+  "am_michael",
+  "bf_emma",
+  "bf_isabella",
+  "bm_george",
+  "bm_lewis",
 ] as const;
 ```
 
@@ -92,11 +99,11 @@ Available voices
 
 ## Affected Files
 
-| File | Change |
-|---|---|
-| `packages/contracts/src/settings.ts` | Add `KOKORO_VOICES` constant; add `kokoroEnabledVoices` to `SpeechSettings` |
-| `apps/web/src/components/Sidebar.tsx` | Replace `SidebarTtsMuteButton` with `SidebarVoiceDropdown` |
-| `apps/web/src/components/settings/SettingsPanels.tsx` (`GeneralSettingsPanel`, line 479) | Add voice subsection with checkbox list |
+| File                                                                                     | Change                                                                      |
+| ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `packages/contracts/src/settings.ts`                                                     | Add `KOKORO_VOICES` constant; add `kokoroEnabledVoices` to `SpeechSettings` |
+| `apps/web/src/components/Sidebar.tsx`                                                    | Replace `SidebarTtsMuteButton` with `SidebarVoiceDropdown`                  |
+| `apps/web/src/components/settings/SettingsPanels.tsx` (`GeneralSettingsPanel`, line 479) | Add voice subsection with checkbox list                                     |
 
 ## Out of Scope
 

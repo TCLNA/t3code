@@ -5,16 +5,8 @@ import { useMemo, useState } from "react";
 import { useHandleNewThread } from "~/hooks/useHandleNewThread";
 import { useThreadShells } from "~/state/entities";
 import { useSimplifiedNavigate } from "./simplifiedNavigation";
-import {
-  SectionHeader,
-  SessionCard,
-  SimplifiedTabBar,
-} from "./SimplifiedPrimitives";
-import {
-  classifySession,
-  groupSessionsByStatus,
-  type SessionGroupKey,
-} from "./sessionsGrouping";
+import { SectionHeader, SessionCard, SimplifiedTabBar } from "./SimplifiedPrimitives";
+import { classifySession, groupSessionsByStatus, type SessionGroupKey } from "./sessionsGrouping";
 
 const GROUP_LABELS: Record<SessionGroupKey, string> = {
   needsYou: "Needs you",
@@ -38,13 +30,10 @@ export default function SessionsHomeScreen() {
   const { defaultProjectRef, handleNewThread } = useHandleNewThread();
   const [tab, setTab] = useState<"sessions" | "projects">("sessions");
 
-  const grouped = useMemo(
-    () => groupSessionsByStatus(threads, 0),
-    [threads],
-  );
+  const grouped = useMemo(() => groupSessionsByStatus(threads, 0), [threads]);
 
   const byProject = useMemo(() => {
-    const map = new Map<string, typeof threads[number][]>();
+    const map = new Map<string, (typeof threads)[number][]>();
     for (const thread of threads) {
       const key = thread.projectId as unknown as string;
       const list = map.get(key) ?? [];

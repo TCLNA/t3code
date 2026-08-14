@@ -21,14 +21,14 @@ in the classic chat composer:
 
 ## Decisions (locked)
 
-| Question | Decision |
-| --- | --- |
-| Insert timing | Append per pause (live), append-only, never rewrites existing text |
-| TTS | Kept. Muted by default. Auto-speaks the streaming reply only when unmuted. |
-| Mute control | Speaker icon toggle in the prompt bar (gated on `ttsEnabled`) |
-| Listen button | On **every** assistant message |
-| Modes | recording / not-recording only |
-| Alt+V | Formal, remappable keybinding action `voice.toggleRecording` |
+| Question      | Decision                                                                   |
+| ------------- | -------------------------------------------------------------------------- |
+| Insert timing | Append per pause (live), append-only, never rewrites existing text         |
+| TTS           | Kept. Muted by default. Auto-speaks the streaming reply only when unmuted. |
+| Mute control  | Speaker icon toggle in the prompt bar (gated on `ttsEnabled`)              |
+| Listen button | On **every** assistant message                                             |
+| Modes         | recording / not-recording only                                             |
+| Alt+V         | Formal, remappable keybinding action `voice.toggleRecording`               |
 
 ## Removals
 
@@ -56,7 +56,7 @@ Slim zustand store:
 ```ts
 interface VoiceStoreState {
   recording: boolean;
-  ttsMuted: boolean;        // persisted to localStorage, default true
+  ttsMuted: boolean; // persisted to localStorage, default true
   error: string | null;
   setRecording(v: boolean): void;
   toggleRecording(): void;
@@ -126,7 +126,7 @@ Mounted where `VoiceModeView` was (`routes/_chat.tsx`). Owns one
 
 ```ts
 interface VoiceTts {
-  speak(text: string): void;   // stop() then enqueue whole message
+  speak(text: string): void; // stop() then enqueue whole message
   stop(): void;
 }
 ```

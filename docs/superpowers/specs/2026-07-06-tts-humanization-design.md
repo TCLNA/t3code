@@ -32,16 +32,16 @@ stream delta
 
 Instead of stripping inline code and dropping paths, replace them with typed markers:
 
-| Input | Output |
-|---|---|
-| `` `useVoiceStore` `` | `[CODE:useVoiceStore]` |
+| Input                    | Output                          |
+| ------------------------ | ------------------------------- |
+| `` `useVoiceStore` ``    | `[CODE:useVoiceStore]`          |
 | `src/components/Foo.tsx` | `[PATH:src/components/Foo.tsx]` |
-| `package.json` | `[PATH:package.json]` |
-| `->` | `[ARROW:->]` |
-| `=>` | `[ARROW:=>]` |
-| `<-` | `[ARROW:<-]` |
-| `-->` | `[ARROW:-->]` |
-| fenced code block | ` ` (dropped, unchanged) |
+| `package.json`           | `[PATH:package.json]`           |
+| `->`                     | `[ARROW:->]`                    |
+| `=>`                     | `[ARROW:=>]`                    |
+| `<-`                     | `[ARROW:<-]`                    |
+| `-->`                    | `[ARROW:-->]`                   |
+| fenced code block        | ` ` (dropped, unchanged)        |
 
 Markers use square-bracket syntax that is uncommon in prose and unambiguous to the LLM.
 
@@ -93,12 +93,12 @@ Rules:
 
 ### Files Changed
 
-| File | Change |
-|---|---|
-| `packages/shared/src/speakableText.ts` | Replace `INLINE_CODE` strip + `stripPathLike` drop with marker insertion; add `markArrows` |
-| `packages/shared/src/speakableText.test.ts` | Update inline-code and path tests; add marker output tests |
-| `apps/web/src/voice/humanizeSpeech.ts` | New — `humanizeForSpeech()` with Anthropic SDK call + fallback |
-| `apps/web/src/voice/VoiceTtsProvider.tsx` | Await `humanizeForSpeech(unit)` before `playback.enqueue` |
+| File                                        | Change                                                                                     |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `packages/shared/src/speakableText.ts`      | Replace `INLINE_CODE` strip + `stripPathLike` drop with marker insertion; add `markArrows` |
+| `packages/shared/src/speakableText.test.ts` | Update inline-code and path tests; add marker output tests                                 |
+| `apps/web/src/voice/humanizeSpeech.ts`      | New — `humanizeForSpeech()` with Anthropic SDK call + fallback                             |
+| `apps/web/src/voice/VoiceTtsProvider.tsx`   | Await `humanizeForSpeech(unit)` before `playback.enqueue`                                  |
 
 ---
 

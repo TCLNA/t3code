@@ -168,11 +168,7 @@ export class VoiceCaptureController {
     if (this.speaking) {
       // Copy the frame — the transferred buffer is reused by the worklet.
       this.chunks.push(new Int16Array(pcm));
-      if (
-        this.autoEndOnSilence &&
-        !isVoice &&
-        now - this.lastVoiceAt >= this.silenceHangoverMs
-      ) {
+      if (this.autoEndOnSilence && !isVoice && now - this.lastVoiceAt >= this.silenceHangoverMs) {
         this.finishUtterance();
       }
     }

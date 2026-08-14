@@ -11,7 +11,11 @@
  *
  * @module speechRoutes
  */
-import { AuthOrchestrationOperateScope, TextToSpeechRequest, SpeechHumanizeRequest } from "@t3tools/contracts";
+import {
+  AuthOrchestrationOperateScope,
+  TextToSpeechRequest,
+  SpeechHumanizeRequest,
+} from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
@@ -64,9 +68,7 @@ export const sttRouteLayer = HttpRouter.add(
       ? (url.value.searchParams.get("language") ?? undefined)
       : undefined;
 
-    const body = yield* request.arrayBuffer.pipe(
-      Effect.orElseSucceed(() => new ArrayBuffer(0)),
-    );
+    const body = yield* request.arrayBuffer.pipe(Effect.orElseSucceed(() => new ArrayBuffer(0)));
     const wavBytes = new Uint8Array(body);
     if (wavBytes.byteLength === 0) {
       return HttpServerResponse.text("Empty audio body.", { status: 400 });

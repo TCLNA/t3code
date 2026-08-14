@@ -34,10 +34,12 @@
 ### Task 1: Route HTTP to the page's own origin when served by a dev server
 
 **Files:**
+
 - Modify: `apps/web/src/environments/primary/target.ts` (`resolveHttpRequestBaseUrl`)
 - Test: `apps/web/src/environments/primary/target.test.ts` (create)
 
 **Interfaces:**
+
 - Consumes: existing `PrimaryEnvironmentTarget`, `parseTargetUrl`, `import.meta.env.VITE_DEV_SERVER_URL`, `window.location`.
 - Produces: `resolveHttpRequestBaseUrl(primaryTarget)` returns `window.location.origin` when the page is served by the dev server and the configured target is a different origin — for **any** host (loopback removed).
 
@@ -115,30 +117,30 @@ Expected: FAIL — the non-loopback case returns `http://127.0.0.1:13773/...` (l
 In `resolveHttpRequestBaseUrl`, replace the guard block:
 
 ```ts
-  if (
-    !isCurrentOriginDevServer ||
-    currentUrl.origin === targetUrl.origin ||
-    !isLoopbackHostname(currentUrl.hostname) ||
-    !isLoopbackHostname(targetUrl.hostname)
-  ) {
-    return httpBaseUrl;
-  }
+if (
+  !isCurrentOriginDevServer ||
+  currentUrl.origin === targetUrl.origin ||
+  !isLoopbackHostname(currentUrl.hostname) ||
+  !isLoopbackHostname(targetUrl.hostname)
+) {
+  return httpBaseUrl;
+}
 
-  return currentUrl.origin;
+return currentUrl.origin;
 ```
 
 with:
 
 ```ts
-  // When the page is served by our dev server, all API traffic must ride the
-  // page's own origin (through the Vite proxy) so the session cookie is
-  // same-origin — on loopback, LAN, and tailnet hosts alike. Only fall back to
-  // the configured target when we are NOT the dev-served origin.
-  if (!isCurrentOriginDevServer || currentUrl.origin === targetUrl.origin) {
-    return httpBaseUrl;
-  }
+// When the page is served by our dev server, all API traffic must ride the
+// page's own origin (through the Vite proxy) so the session cookie is
+// same-origin — on loopback, LAN, and tailnet hosts alike. Only fall back to
+// the configured target when we are NOT the dev-served origin.
+if (!isCurrentOriginDevServer || currentUrl.origin === targetUrl.origin) {
+  return httpBaseUrl;
+}
 
-  return currentUrl.origin;
+return currentUrl.origin;
 ```
 
 If `isLoopbackHostname` is now unused in this file, remove it and its `LOOPBACK_HOSTNAMES` set; if still exported/used elsewhere, leave it. Verify with: `grep -rn "isLoopbackHostname" apps/web/src`.
@@ -165,10 +167,12 @@ git commit -m "fix(web): route dev-served API traffic through the page origin"
 ### Task 2: Same-origin resolver for the WebSocket base URL
 
 **Files:**
+
 - Modify: `apps/web/src/environments/primary/target.ts`
 - Test: `apps/web/src/environments/primary/target.test.ts`
 
 **Interfaces:**
+
 - Produces: exported `resolveWsRequestBaseUrl(primaryTarget: PrimaryEnvironmentTarget): string`. When the page is dev-served, returns the page origin with a `ws:`/`wss:` protocol matching the page (`http:`→`ws:`, `https:`→`wss:`); otherwise returns `primaryTarget.target.wsBaseUrl` unchanged.
 
 - [ ] **Step 1: Write failing tests**
@@ -177,7 +181,10 @@ Append to `target.test.ts`:
 
 ```ts
 describe("resolveWsRequestBaseUrl", () => {
-  beforeEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); });
+  beforeEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
 
   it("uses wss on the page origin when dev-served over https", async () => {
     vi.stubEnv("VITE_DEV_SERVER_URL", "https://box.tail1234.ts.net");
@@ -194,9 +201,7 @@ describe("resolveWsRequestBaseUrl", () => {
     vi.stubEnv("VITE_WS_URL", "ws://localhost:13773");
     setLocation("http://localhost:5733/");
     const { resolveWsRequestBaseUrl, readPrimaryEnvironmentTarget } = await load();
-    expect(resolveWsRequestBaseUrl(readPrimaryEnvironmentTarget())).toBe(
-      "ws://localhost:5733/",
-    );
+    expect(resolveWsRequestBaseUrl(readPrimaryEnvironmentTarget())).toBe("ws://localhost:5733/");
   });
 
   it("returns the configured ws base when not dev-served", async () => {
@@ -204,9 +209,7 @@ describe("resolveWsRequestBaseUrl", () => {
     vi.stubEnv("VITE_WS_URL", "wss://api.example.com");
     setLocation("https://app.example.com/");
     const { resolveWsRequestBaseUrl, readPrimaryEnvironmentTarget } = await load();
-    expect(resolveWsRequestBaseUrl(readPrimaryEnvironmentTarget())).toBe(
-      "wss://api.example.com/",
-    );
+    expect(resolveWsRequestBaseUrl(readPrimaryEnvironmentTarget())).toBe("wss://api.example.com/");
   });
 });
 ```
@@ -270,10 +273,12 @@ git commit -m "feat(web): add same-origin WebSocket base resolver"
 ### Task 3: Primary connection registration uses same-origin http + ws
 
 **Files:**
+
 - Modify: `apps/web/src/connection/platform.ts` (`loadPrimaryConnectionRegistration`, ~line 286-299)
 - Test: covered by manual end-to-end (Task 7); add no new unit test unless `platform.test.ts` exists.
 
 **Interfaces:**
+
 - Consumes: `resolveHttpRequestBaseUrl`, `resolveWsRequestBaseUrl` from `../environments/primary/target` (Tasks 1-2).
 - Produces: `PrimaryConnectionTarget` whose `httpBaseUrl`/`wsBaseUrl` are the same-origin values, so the descriptor fetch, `/api/auth/websocket-ticket` request (cookie-authed), and the `/ws` socket all use the page origin.
 
@@ -282,10 +287,7 @@ git commit -m "feat(web): add same-origin WebSocket base resolver"
 At the top of `platform.ts`, add to the existing import from the primary target module (find the current import of `resolvePrimaryEnvironmentHttpUrl`/`readPrimaryEnvironmentTarget`; if none, add):
 
 ```ts
-import {
-  resolveHttpRequestBaseUrl,
-  resolveWsRequestBaseUrl,
-} from "../environments/primary/target";
+import { resolveHttpRequestBaseUrl, resolveWsRequestBaseUrl } from "../environments/primary/target";
 ```
 
 Verify the exact existing import path/symbols first: `grep -n "environments/primary/target" apps/web/src/connection/platform.ts`.
@@ -295,35 +297,39 @@ Verify the exact existing import path/symbols first: `grep -n "environments/prim
 Replace the body that builds the registration:
 
 ```ts
-  const descriptor = yield* fetchRemoteEnvironmentDescriptor({
+const descriptor =
+  yield *
+  fetchRemoteEnvironmentDescriptor({
     httpBaseUrl: resolved.target.httpBaseUrl,
   }).pipe(Effect.provide(primaryEnvironmentHttpLayer), Effect.mapError(mapRemoteEnvironmentError));
-  return new PrimaryConnectionRegistration({
-    target: new PrimaryConnectionTarget({
-      environmentId: descriptor.environmentId,
-      label: descriptor.label,
-      httpBaseUrl: resolved.target.httpBaseUrl,
-      wsBaseUrl: resolved.target.wsBaseUrl,
-    }),
-  });
+return new PrimaryConnectionRegistration({
+  target: new PrimaryConnectionTarget({
+    environmentId: descriptor.environmentId,
+    label: descriptor.label,
+    httpBaseUrl: resolved.target.httpBaseUrl,
+    wsBaseUrl: resolved.target.wsBaseUrl,
+  }),
+});
 ```
 
 with:
 
 ```ts
-  const requestHttpBaseUrl = resolveHttpRequestBaseUrl(resolved);
-  const requestWsBaseUrl = resolveWsRequestBaseUrl(resolved);
-  const descriptor = yield* fetchRemoteEnvironmentDescriptor({
+const requestHttpBaseUrl = resolveHttpRequestBaseUrl(resolved);
+const requestWsBaseUrl = resolveWsRequestBaseUrl(resolved);
+const descriptor =
+  yield *
+  fetchRemoteEnvironmentDescriptor({
     httpBaseUrl: requestHttpBaseUrl,
   }).pipe(Effect.provide(primaryEnvironmentHttpLayer), Effect.mapError(mapRemoteEnvironmentError));
-  return new PrimaryConnectionRegistration({
-    target: new PrimaryConnectionTarget({
-      environmentId: descriptor.environmentId,
-      label: descriptor.label,
-      httpBaseUrl: requestHttpBaseUrl,
-      wsBaseUrl: requestWsBaseUrl,
-    }),
-  });
+return new PrimaryConnectionRegistration({
+  target: new PrimaryConnectionTarget({
+    environmentId: descriptor.environmentId,
+    label: descriptor.label,
+    httpBaseUrl: requestHttpBaseUrl,
+    wsBaseUrl: requestWsBaseUrl,
+  }),
+});
 ```
 
 - [ ] **Step 3: Typecheck + web unit suite**
@@ -343,9 +349,11 @@ git commit -m "fix(web): primary connection uses same-origin http/ws endpoints"
 ### Task 4: Vite proxies the `/ws` socket and supports HMR over TLS
 
 **Files:**
+
 - Modify: `apps/web/vite.config.ts` (proxy block + `hmr`)
 
 **Interfaces:**
+
 - Consumes: existing `devProxyTarget`, `host`, `port`. New: `publicUrl` from `process.env.T3CODE_PUBLIC_URL` (set by Task 5; read defensively so this task is independently testable).
 - Produces: Vite forwards `/ws` (WebSocket upgrade) to the environment server; HMR uses `wss` on port 443 when a public HTTPS URL is configured.
 
@@ -400,10 +408,12 @@ git commit -m "feat(web): proxy /ws socket and support HMR over TLS"
 ### Task 5: `dev-runner --public-url` flag
 
 **Files:**
+
 - Modify: `scripts/dev-runner.ts` (flag def + `createDevRunnerEnv`)
 - Test: `scripts/dev-runner.test.ts`
 
 **Interfaces:**
+
 - Consumes: existing `CreateDevRunnerEnvInput`, `createDevRunnerEnv`.
 - Produces: when `--public-url <https url>` (fallback `T3CODE_PUBLIC_URL`) is set and non-desktop, the emitted env has `VITE_DEV_SERVER_URL = <url>`, `VITE_WS_URL = wss://<host>` (or `ws://` for http), and `T3CODE_PUBLIC_URL = <url>`. `VITE_HTTP_URL` is unchanged (client self-proxies via Task 1).
 
@@ -451,13 +461,13 @@ Add `publicUrl` to `CreateDevRunnerEnvInput` (`readonly publicUrl: string | unde
 In the non-desktop branch, after the existing `VITE_HTTP_URL`/`VITE_WS_URL` assignments:
 
 ```ts
-    if (!isDesktopMode && publicUrl !== undefined) {
-      const publicUrlTrimmed = publicUrl.trim();
-      const parsed = new URL(publicUrlTrimmed);
-      output.VITE_DEV_SERVER_URL = publicUrlTrimmed;
-      output.VITE_WS_URL = `${parsed.protocol === "https:" ? "wss:" : "ws:"}//${parsed.host}`;
-      output.T3CODE_PUBLIC_URL = publicUrlTrimmed;
-    }
+if (!isDesktopMode && publicUrl !== undefined) {
+  const publicUrlTrimmed = publicUrl.trim();
+  const parsed = new URL(publicUrlTrimmed);
+  output.VITE_DEV_SERVER_URL = publicUrlTrimmed;
+  output.VITE_WS_URL = `${parsed.protocol === "https:" ? "wss:" : "ws:"}//${parsed.host}`;
+  output.T3CODE_PUBLIC_URL = publicUrlTrimmed;
+}
 ```
 
 Add `publicUrl` to the destructured params of `createDevRunnerEnv` (alongside `host`).
@@ -479,9 +489,11 @@ git commit -m "feat(dev-runner): add --public-url for TLS-fronted remote access"
 ### Task 6: Server allows the public origin for CORS (defensive)
 
 **Files:**
+
 - Modify: `apps/server/src/http.ts` (the `HttpRouter.cors({ allowedOrigins: [devOrigin, ...] })` at ~line 55)
 
 **Interfaces:**
+
 - Consumes: `VITE_DEV_SERVER_URL` (already the source of `devOrigin`).
 - Produces: with `--public-url` set, `VITE_DEV_SERVER_URL` is the tailnet HTTPS origin, so `devOrigin` already covers it. This task only verifies/locks that, since same-origin traffic makes CORS moot but preflights may still occur.
 
@@ -516,6 +528,7 @@ git commit -m "chore(server): ensure public origin is CORS-allowed under --publi
 ### Task 7: Tailscale serve setup + end-to-end verification
 
 **Files:**
+
 - Create: `docs/remote-dev-tailscale.md`
 
 **Interfaces:** none (docs + manual acceptance).
@@ -524,16 +537,18 @@ git commit -m "chore(server): ensure public origin is CORS-allowed under --publi
 
 Create `docs/remote-dev-tailscale.md`:
 
-```markdown
+````markdown
 # Remote dev over Tailscale (HTTPS)
 
 Serve the dev app on a real HTTPS origin so pairing works from any tailnet device.
 
 ## One-time
+
 - Enable MagicDNS + HTTPS certificates in the tailnet admin console.
 - Get the machine's name: `tailscale status --json | jq -r .Self.DNSName` (strip trailing dot), e.g. `box.tail1234.ts.net`.
 
 ## Run
+
 ```bash
 # 1. Start the dev server bound to all interfaces, told its public URL:
 HOST=0.0.0.0 T3CODE_HOST=0.0.0.0 \
@@ -542,8 +557,10 @@ HOST=0.0.0.0 T3CODE_HOST=0.0.0.0 \
 # 2. In another terminal, front it with TLS:
 tailscale serve --bg --https=443 http://127.0.0.1:5733
 ```
+````
 
 ## Pair
+
 ```bash
 cd apps/server
 T3CODE_HOME=/home/thomas/.t3 node src/bin.ts auth pairing create \
@@ -551,11 +568,14 @@ T3CODE_HOME=/home/thomas/.t3 node src/bin.ts auth pairing create \
   --dev-url https://box.tail1234.ts.net \
   --base-url https://box.tail1234.ts.net
 ```
+
 Open the printed `Pair URL` on the remote device. It stays authenticated (same-origin Secure cookie).
 
 ## Stop serving
+
 `tailscale serve --https=443 off`
-```
+
+````
 
 - [ ] **Step 2: Manual end-to-end (acceptance)**
 
@@ -566,7 +586,7 @@ Open the printed `Pair URL` on the remote device. It stays authenticated (same-o
 
 ```bash
 node -e 'const {DatabaseSync}=require("node:sqlite");const d=new DatabaseSync("/home/thomas/.t3/dev/state.sqlite",{readOnly:true});console.log(d.prepare("SELECT client_browser,last_connected_at FROM auth_sessions ORDER BY rowid DESC LIMIT 3").all());'
-```
+````
 
 5. Regression: from the host, open `http://localhost:5733`, pair, confirm it still works.
 

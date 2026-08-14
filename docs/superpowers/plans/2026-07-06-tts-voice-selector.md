@@ -20,11 +20,13 @@
 ### Task 1: Add KOKORO_VOICES constant and kokoroEnabledVoices field
 
 **Files:**
+
 - Modify: `packages/contracts/src/settings.ts:366-445`
 - Modify: `packages/contracts/src/settings.ts:604-614` (ServerSettingsPatch.speech)
 - Test: `packages/contracts/src/settings.test.ts`
 
 **Interfaces:**
+
 - Produces:
   - `KOKORO_VOICES: readonly string[]` — exported from `@t3tools/contracts`
   - `SpeechSettings` gains field `kokoroEnabledVoices: readonly string[]` (defaults to all voices)
@@ -35,10 +37,7 @@
 Add to `packages/contracts/src/settings.test.ts`:
 
 ```ts
-import {
-  KOKORO_VOICES,
-  DEFAULT_KOKORO_VOICE,
-} from "./settings.ts";
+import { KOKORO_VOICES, DEFAULT_KOKORO_VOICE } from "./settings.ts";
 
 describe("SpeechSettings.kokoroEnabledVoices", () => {
   it("defaults to all KOKORO_VOICES when speech key is absent", () => {
@@ -159,9 +158,11 @@ git commit -m "feat(contracts): add KOKORO_VOICES constant and kokoroEnabledVoic
 ### Task 2: Replace SidebarTtsMuteButton with SidebarVoiceDropdown
 
 **Files:**
+
 - Modify: `apps/web/src/components/Sidebar.tsx:2743-2760`
 
 **Interfaces:**
+
 - Consumes:
   - `KOKORO_VOICES: readonly string[]` from `@t3tools/contracts`
   - `DEFAULT_KOKORO_VOICE: string` from `@t3tools/contracts`
@@ -182,7 +183,7 @@ In the lucide-react import block (line 1), add `CheckIcon`:
 import {
   ArchiveIcon,
   ArrowUpDownIcon,
-  CheckIcon,          // add this
+  CheckIcon, // add this
   ChevronRightIcon,
   CloudIcon,
   ContainerIcon,
@@ -208,7 +209,11 @@ import { cn, isMacPlatform } from "../lib/utils";
 Near where `useClientSettings, useUpdateClientSettings` is imported (line 210), add `useUpdatePrimarySettings`:
 
 ```ts
-import { useClientSettings, useUpdateClientSettings, useUpdatePrimarySettings } from "~/hooks/useSettings";
+import {
+  useClientSettings,
+  useUpdateClientSettings,
+  useUpdatePrimarySettings,
+} from "~/hooks/useSettings";
 ```
 
 Add new imports for the popover and switch (place them near other ui imports in the file):
@@ -323,9 +328,11 @@ git commit -m "feat(ui): replace TTS mute button with SidebarVoiceDropdown popov
 ### Task 3: Add voice checkbox section to GeneralSettingsPanel
 
 **Files:**
+
 - Modify: `apps/web/src/components/settings/SettingsPanels.tsx:479+`
 
 **Interfaces:**
+
 - Consumes:
   - `KOKORO_VOICES` and `DEFAULT_KOKORO_VOICE` from `@t3tools/contracts` (new imports)
   - `Checkbox` from `../ui/checkbox` (new import)
@@ -357,56 +364,51 @@ import { Checkbox } from "../ui/checkbox";
 At the end of `GeneralSettingsPanel`'s return value, inside `<SettingsPageContainer>`, after the last existing `<SettingsSection>`, add:
 
 ```tsx
-{settings.speech.ttsEnabled && (
-  <SettingsSection title="Voice">
-    <div className="px-4 py-3.5 sm:px-5">
-      <p className="mb-3 text-[13px] font-semibold tracking-[-0.01em] text-foreground">
-        Available voices
-      </p>
-      <div className="flex flex-col gap-2">
-        {KOKORO_VOICES.map((voice) => {
-          const enabledVoices =
-            settings.speech.kokoroEnabledVoices ?? [...KOKORO_VOICES];
-          const isChecked = enabledVoices.includes(voice);
-          const isLastEnabled = isChecked && enabledVoices.length === 1;
-          return (
-            <label
-              key={voice}
-              className="flex cursor-pointer items-center gap-2.5 text-sm text-foreground"
-            >
-              <Checkbox
-                checked={isChecked}
-                disabled={isLastEnabled}
-                onCheckedChange={(checked) => {
-                  const current =
-                    settings.speech.kokoroEnabledVoices ?? [...KOKORO_VOICES];
-                  const next =
-                    checked === true
-                      ? [...current, voice]
-                      : current.filter((v) => v !== voice);
-                  const speechPatch: {
-                    kokoroEnabledVoices: string[];
-                    kokoroVoice?: string;
-                  } = { kokoroEnabledVoices: next };
-                  if (
-                    checked !== true &&
-                    settings.speech.kokoroVoice === voice
-                  ) {
-                    speechPatch.kokoroVoice = next[0] ?? DEFAULT_KOKORO_VOICE;
-                  }
-                  updateSettings({
-                    speech: { ...settings.speech, ...speechPatch },
-                  });
-                }}
-              />
-              {voice}
-            </label>
-          );
-        })}
+{
+  settings.speech.ttsEnabled && (
+    <SettingsSection title="Voice">
+      <div className="px-4 py-3.5 sm:px-5">
+        <p className="mb-3 text-[13px] font-semibold tracking-[-0.01em] text-foreground">
+          Available voices
+        </p>
+        <div className="flex flex-col gap-2">
+          {KOKORO_VOICES.map((voice) => {
+            const enabledVoices = settings.speech.kokoroEnabledVoices ?? [...KOKORO_VOICES];
+            const isChecked = enabledVoices.includes(voice);
+            const isLastEnabled = isChecked && enabledVoices.length === 1;
+            return (
+              <label
+                key={voice}
+                className="flex cursor-pointer items-center gap-2.5 text-sm text-foreground"
+              >
+                <Checkbox
+                  checked={isChecked}
+                  disabled={isLastEnabled}
+                  onCheckedChange={(checked) => {
+                    const current = settings.speech.kokoroEnabledVoices ?? [...KOKORO_VOICES];
+                    const next =
+                      checked === true ? [...current, voice] : current.filter((v) => v !== voice);
+                    const speechPatch: {
+                      kokoroEnabledVoices: string[];
+                      kokoroVoice?: string;
+                    } = { kokoroEnabledVoices: next };
+                    if (checked !== true && settings.speech.kokoroVoice === voice) {
+                      speechPatch.kokoroVoice = next[0] ?? DEFAULT_KOKORO_VOICE;
+                    }
+                    updateSettings({
+                      speech: { ...settings.speech, ...speechPatch },
+                    });
+                  }}
+                />
+                {voice}
+              </label>
+            );
+          })}
+        </div>
       </div>
-    </div>
-  </SettingsSection>
-)}
+    </SettingsSection>
+  );
+}
 ```
 
 - [ ] **Step 3: Typecheck**

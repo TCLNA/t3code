@@ -25,10 +25,12 @@
 ### Task 1: Prediction settings schema
 
 **Files:**
+
 - Modify: `packages/contracts/src/settings.ts` (add `PredictionSettings`, wire into `ServerSettings` ~line 519, add to `ServerSettingsPatch` ~line 653)
 - Test: `packages/contracts/src/settings.prediction.test.ts` (create)
 
 **Interfaces:**
+
 - Produces: `PredictionSettings` (`{ enabled: boolean; model: ModelSelection }`), reachable as `settings.prediction.enabled` / `settings.prediction.model` on `UnifiedSettings`. Patchable via `ServerSettingsPatch.prediction`.
 
 - [ ] **Step 1: Write the failing test**
@@ -125,16 +127,25 @@ git commit -m "feat(contracts): add prediction settings group"
 ### Task 2: Prediction prompt builder
 
 **Files:**
+
 - Modify: `apps/server/src/textGeneration/TextGenerationPrompts.ts` (add `buildPredictionPrompt` + input type)
 - Test: `apps/server/src/textGeneration/TextGenerationPrompts.test.ts` (add cases)
 
 **Interfaces:**
+
 - Produces:
   ```ts
-  interface PredictionMessage { role: "user" | "assistant" | "system"; text: string }
-  interface PredictionPromptInput { messages: ReadonlyArray<PredictionMessage> }
-  function buildPredictionPrompt(input: PredictionPromptInput):
-    { prompt: string; outputSchema: Schema.Struct<{ prediction: typeof Schema.String }> }
+  interface PredictionMessage {
+    role: "user" | "assistant" | "system";
+    text: string;
+  }
+  interface PredictionPromptInput {
+    messages: ReadonlyArray<PredictionMessage>;
+  }
+  function buildPredictionPrompt(input: PredictionPromptInput): {
+    prompt: string;
+    outputSchema: Schema.Struct<{ prediction: typeof Schema.String }>;
+  };
   ```
 - Consumes: `limitSection` (already imported in this file).
 
@@ -202,7 +213,9 @@ const PREDICTION_MAX_MESSAGE_CHARS = 2_000;
 export function buildPredictionPrompt(input: PredictionPromptInput) {
   const recent = input.messages.slice(-PREDICTION_MAX_MESSAGES);
   const transcript = recent
-    .map((message) => `${message.role}: ${limitSection(message.text, PREDICTION_MAX_MESSAGE_CHARS)}`)
+    .map(
+      (message) => `${message.role}: ${limitSection(message.text, PREDICTION_MAX_MESSAGE_CHARS)}`,
+    )
     .join("\n\n");
 
   const prompt = [
@@ -243,10 +256,12 @@ git commit -m "feat(server): add next-message prediction prompt builder"
 ### Task 3: TextGeneration service method + registry delegate
 
 **Files:**
+
 - Modify: `apps/server/src/textGeneration/TextGeneration.ts` (add input/result types, service method, delegate)
 - Test: (covered by Task 4's driver test; no separate test here — folded in)
 
 **Interfaces:**
+
 - Produces:
   ```ts
   interface NextMessagePredictionInput {
@@ -337,11 +352,13 @@ This task's commit is bundled with Task 4 (drivers must compile). Proceed direct
 ### Task 4: Claude & Codex driver implementations
 
 **Files:**
+
 - Modify: `apps/server/src/textGeneration/ClaudeTextGeneration.ts`
 - Modify: `apps/server/src/textGeneration/CodexTextGeneration.ts`
 - Test: `apps/server/src/textGeneration/ClaudeTextGeneration.test.ts` (add a prediction case following existing spawner-mock cases)
 
 **Interfaces:**
+
 - Consumes: `buildPredictionPrompt` (Task 2), `NextMessagePredictionInput/Result` (Task 3).
 - Produces: working `generateNextMessagePrediction` on both drivers.
 
@@ -395,32 +412,32 @@ Add `"generateNextMessagePrediction"` to BOTH `operation` unions in this file (i
 Add the method before the `return {...}` block (after line 356):
 
 ```ts
-  const generateNextMessagePrediction: TextGeneration.TextGeneration["Service"]["generateNextMessagePrediction"] =
-    Effect.fn("ClaudeTextGeneration.generateNextMessagePrediction")(function* (input) {
-      const { prompt, outputSchema } = buildPredictionPrompt({ messages: input.messages });
+const generateNextMessagePrediction: TextGeneration.TextGeneration["Service"]["generateNextMessagePrediction"] =
+  Effect.fn("ClaudeTextGeneration.generateNextMessagePrediction")(function* (input) {
+    const { prompt, outputSchema } = buildPredictionPrompt({ messages: input.messages });
 
-      const generated = yield* runClaudeJson({
-        operation: "generateNextMessagePrediction",
-        cwd: input.cwd,
-        prompt,
-        outputSchemaJson: outputSchema,
-        modelSelection: input.modelSelection,
-      });
-
-      return { prediction: generated.prediction.trim() };
+    const generated = yield* runClaudeJson({
+      operation: "generateNextMessagePrediction",
+      cwd: input.cwd,
+      prompt,
+      outputSchemaJson: outputSchema,
+      modelSelection: input.modelSelection,
     });
+
+    return { prediction: generated.prediction.trim() };
+  });
 ```
 
 Add it to the returned object (line 358-363):
 
 ```ts
-  return {
-    generateCommitMessage,
-    generatePrContent,
-    generateBranchName,
-    generateThreadTitle,
-    generateNextMessagePrediction,
-  } satisfies TextGeneration.TextGeneration["Service"];
+return {
+  generateCommitMessage,
+  generatePrContent,
+  generateBranchName,
+  generateThreadTitle,
+  generateNextMessagePrediction,
+} satisfies TextGeneration.TextGeneration["Service"];
 ```
 
 - [ ] **Step 4: Implement in Codex driver**
@@ -432,20 +449,20 @@ Add `buildPredictionPrompt` to the prompt import block (lines 19-24). Add `"gene
 Add the method before the `return {...}` (after line 396):
 
 ```ts
-  const generateNextMessagePrediction: TextGeneration.TextGeneration["Service"]["generateNextMessagePrediction"] =
-    Effect.fn("CodexTextGeneration.generateNextMessagePrediction")(function* (input) {
-      const { prompt, outputSchema } = buildPredictionPrompt({ messages: input.messages });
+const generateNextMessagePrediction: TextGeneration.TextGeneration["Service"]["generateNextMessagePrediction"] =
+  Effect.fn("CodexTextGeneration.generateNextMessagePrediction")(function* (input) {
+    const { prompt, outputSchema } = buildPredictionPrompt({ messages: input.messages });
 
-      const generated = yield* runCodexJson({
-        operation: "generateNextMessagePrediction",
-        cwd: input.cwd,
-        prompt,
-        outputSchemaJson: outputSchema,
-        modelSelection: input.modelSelection,
-      });
-
-      return { prediction: generated.prediction.trim() };
+    const generated = yield* runCodexJson({
+      operation: "generateNextMessagePrediction",
+      cwd: input.cwd,
+      prompt,
+      outputSchemaJson: outputSchema,
+      modelSelection: input.modelSelection,
     });
+
+    return { prediction: generated.prediction.trim() };
+  });
 ```
 
 Add `generateNextMessagePrediction` to the returned object (line 398-403).
@@ -467,11 +484,13 @@ git commit -m "feat(server): implement next-message prediction (service + claude
 ### Task 5: Stub prediction in Grok / Cursor / OpenCode drivers
 
 **Files:**
+
 - Modify: `apps/server/src/textGeneration/GrokTextGeneration.ts`
 - Modify: `apps/server/src/textGeneration/CursorTextGeneration.ts`
 - Modify: `apps/server/src/textGeneration/OpenCodeTextGeneration.ts`
 
 **Interfaces:**
+
 - Produces: `generateNextMessagePrediction` returning `{ prediction: "" }` on each, so all drivers satisfy `TextGeneration["Service"]`.
 
 - [ ] **Step 1: Add the stub to each driver**
@@ -479,12 +498,12 @@ git commit -m "feat(server): implement next-message prediction (service + claude
 For EACH of the three files, add this method before the returned service object, then add `generateNextMessagePrediction` to that returned object. Read each file first to confirm the exact `Effect.fn` label prefix used by its other methods (e.g. `"GrokTextGeneration.generateThreadTitle"`), and match it:
 
 ```ts
-  const generateNextMessagePrediction: TextGeneration.TextGeneration["Service"]["generateNextMessagePrediction"] =
-    Effect.fn("GrokTextGeneration.generateNextMessagePrediction")(function* (_input) {
-      // Prediction is only implemented for Claude and Codex. Returning an empty
-      // string suppresses the composer ghost text for this provider.
-      return { prediction: "" };
-    });
+const generateNextMessagePrediction: TextGeneration.TextGeneration["Service"]["generateNextMessagePrediction"] =
+  Effect.fn("GrokTextGeneration.generateNextMessagePrediction")(function* (_input) {
+    // Prediction is only implemented for Claude and Codex. Returning an empty
+    // string suppresses the composer ghost text for this provider.
+    return { prediction: "" };
+  });
 ```
 
 Adjust the label string per file (`Grok`/`Cursor`/`OpenCode`). If a driver imports `TextGeneration` under a different alias, match that alias.
@@ -511,9 +530,11 @@ git commit -m "feat(server): stub next-message prediction for grok/cursor/openco
 ### Task 6: RPC contract for `server.getPrediction`
 
 **Files:**
+
 - Modify: `packages/contracts/src/rpc.ts` (add method name, `Rpc.make`, register in `WsRpcGroup`)
 
 **Interfaces:**
+
 - Produces: `WS_METHODS.serverGetPrediction = "server.getPrediction"`, `WsServerGetPredictionRpc` with `payload: { threadId: ThreadId }`, `success: { prediction: string }`.
 
 - [ ] **Step 1: Confirm ThreadId is importable**
@@ -569,9 +590,11 @@ git commit -m "feat(contracts): add server.getPrediction rpc"
 ### Task 7: Server handler for `server.getPrediction`
 
 **Files:**
+
 - Modify: `apps/server/src/ws.ts` (import + acquire `TextGeneration`, add auth scope, add handler)
 
 **Interfaces:**
+
 - Consumes: `WS_METHODS.serverGetPrediction`, `TextGeneration`, `projectionSnapshotQuery.getThreadDetailById`, `serverSettings.getSettings`, `AuthOrchestrationReadScope`.
 - Produces: handler returning `{ prediction: string }`; `{ prediction: "" }` when disabled, thread missing, or on predictor failure.
 
@@ -586,7 +609,7 @@ import * as TextGeneration from "./textGeneration/TextGeneration.ts";
 In the service acquisition block (around line 398-440), add:
 
 ```ts
-      const textGeneration = yield* TextGeneration.TextGeneration;
+const textGeneration = yield * TextGeneration.TextGeneration;
 ```
 
 (`TextGeneration.layer` is already provided app-wide in `server.ts` line ~205, so the service resolves.)
@@ -643,6 +666,7 @@ In the `.of({...})` handlers object, after the `serverUpdateSettings` handler (a
 ```
 
 Notes for the implementer:
+
 - `Option` is already imported in `ws.ts` (used at line 1494).
 - Confirm the correct cwd source: `thread.value.worktreePath` is used elsewhere in this file (line 1517). If `OrchestrationThread` lacks `worktreePath`, fall back to `config.workspaceRoot` only, or resolve the project shell like the `assetsCreateUrl` handler does (lines 1499-1517). Prefer the simplest field that compiles; the predictor does not depend on cwd contents.
 - The final `catchAll` guarantees the RPC never rejects — failures degrade to no ghost.
@@ -664,9 +688,11 @@ git commit -m "feat(server): handle server.getPrediction rpc"
 ### Task 8: Client-runtime command
 
 **Files:**
+
 - Modify: `packages/client-runtime/src/state/server.ts` (add `getPrediction` command)
 
 **Interfaces:**
+
 - Produces: `serverEnvironment.getPrediction` — an environment RPC command dispatching `WS_METHODS.serverGetPrediction` with `{ threadId }`, resolving `{ prediction }`.
 
 - [ ] **Step 1: Add the command**
@@ -697,9 +723,11 @@ git commit -m "feat(client-runtime): add getPrediction command"
 ### Task 9: Settings UI toggle
 
 **Files:**
+
 - Modify: `apps/web/src/components/settings/SettingsPanels.tsx` (add a Switch row bound to `settings.prediction.enabled`)
 
 **Interfaces:**
+
 - Consumes: `usePrimarySettings()`, `useUpdatePrimarySettings()` (already used in this file), `settings.prediction.enabled`.
 
 - [ ] **Step 1: Add the toggle**
@@ -740,27 +768,40 @@ git commit -m "feat(web): add prediction enable toggle to settings"
 ### Task 10: Prediction fetch/cache hook
 
 **Files:**
+
 - Create: `apps/web/src/voice/../prediction/usePrediction.ts` → use `apps/web/src/prediction/usePrediction.ts`
 - Create: `apps/web/src/prediction/predictionCache.ts` (pure dedupe logic)
 - Test: `apps/web/src/prediction/predictionCache.test.ts`
 
 **Interfaces:**
+
 - Produces:
   ```ts
   // predictionCache.ts — pure, unit-testable
-  interface PredictionState { key: string | null; prediction: string }
-  function nextPredictionKey(threadId: string | null, lastMessageId: string | null): string | null
+  interface PredictionState {
+    key: string | null;
+    prediction: string;
+  }
+  function nextPredictionKey(threadId: string | null, lastMessageId: string | null): string | null;
   function shouldFetchPrediction(args: {
-    enabled: boolean; phase: SessionPhase; prevPhase: SessionPhase;
-    promptIsEmpty: boolean; key: string | null; cachedKey: string | null;
-  }): boolean
+    enabled: boolean;
+    phase: SessionPhase;
+    prevPhase: SessionPhase;
+    promptIsEmpty: boolean;
+    key: string | null;
+    cachedKey: string | null;
+  }): boolean;
   ```
   ```ts
   // usePrediction.ts
   function usePrediction(args: {
-    enabled: boolean; environmentId: EnvironmentId; threadId: ThreadId | null;
-    lastMessageId: string | null; phase: SessionPhase; promptIsEmpty: boolean;
-  }): { prediction: string; clear: () => void }
+    enabled: boolean;
+    environmentId: EnvironmentId;
+    threadId: ThreadId | null;
+    lastMessageId: string | null;
+    phase: SessionPhase;
+    promptIsEmpty: boolean;
+  }): { prediction: string; clear: () => void };
   ```
 - Consumes: `serverEnvironment.getPrediction` command via the existing atom-command hook pattern (mirror `apps/web/src/hooks/useSettings.ts:244` `useAtomCommand(serverEnvironment.updateSettings, ...)`).
 
@@ -948,9 +989,11 @@ git commit -m "feat(web): add next-message prediction fetch/cache hook"
 ### Task 11: Ghost text + Right-arrow accept in the Lexical editor
 
 **Files:**
+
 - Modify: `apps/web/src/components/ComposerPromptEditor.tsx`
 
 **Interfaces:**
+
 - Produces: two new optional props on `ComposerPromptEditorProps` — `ghostText?: string` and `onAcceptGhost?: () => void`. The editor renders `ghostText` in the placeholder slot when the value is empty, and calls `onAcceptGhost` on Right-arrow when the editor is empty and a ghost exists.
 - Consumes: `$getComposerRootLength` (line 710), the existing `ComposerInlineTokenArrowPlugin` (line 959).
 
@@ -970,10 +1013,7 @@ Destructure them in both `ComposerPromptEditorInner` (the internal component tha
 Change `ComposerInlineTokenArrowPlugin` (line 959) to take props and check the ghost on Right-arrow. Add parameters:
 
 ```ts
-function ComposerInlineTokenArrowPlugin(props: {
-  ghostText?: string;
-  onAcceptGhost?: () => void;
-}) {
+function ComposerInlineTokenArrowPlugin(props: { ghostText?: string; onAcceptGhost?: () => void }) {
   const [editor] = useLexicalComposerContext();
   const ghostRef = useRef(props.ghostText ?? "");
   const acceptRef = useRef(props.onAcceptGhost);
@@ -1054,9 +1094,11 @@ git commit -m "feat(web): render prediction ghost text + right-arrow accept in e
 ### Task 12: Wire prediction into ChatComposer
 
 **Files:**
+
 - Modify: `apps/web/src/components/chat/ChatComposer.tsx`
 
 **Interfaces:**
+
 - Consumes: `usePrediction` (Task 10), `ghostText`/`onAcceptGhost` props (Task 11), existing `setPrompt` (line 1166), `composerEditorRef`/`composerRef` handles, `phase`, `activeThreadId`, `activeThread`, `environmentId`, `prompt`.
 
 - [ ] **Step 1: Derive inputs and call the hook**
@@ -1064,15 +1106,15 @@ git commit -m "feat(web): render prediction ghost text + right-arrow accept in e
 In `ChatComposer` (after the prompt/state setup, near line 895), add:
 
 ```tsx
-  const lastMessageId = activeThread?.messages?.at(-1)?.id ?? null;
-  const { prediction, clear: clearPrediction } = usePrediction({
-    enabled: settings.prediction.enabled,
-    environmentId,
-    threadId: activeThreadId,
-    lastMessageId,
-    phase,
-    promptIsEmpty: prompt.length === 0,
-  });
+const lastMessageId = activeThread?.messages?.at(-1)?.id ?? null;
+const { prediction, clear: clearPrediction } = usePrediction({
+  enabled: settings.prediction.enabled,
+  environmentId,
+  threadId: activeThreadId,
+  lastMessageId,
+  phase,
+  promptIsEmpty: prompt.length === 0,
+});
 ```
 
 Confirm `activeThread.messages` exists on the `Thread` type; if the field name differs (e.g. it is nested), read `apps/web/src/types.ts` / the `EnvironmentThread` type and use the correct accessor for "the id of the latest message". If no per-message id is available, use the latest turn identifier instead — any value that changes once per turn works as the dedupe key.
@@ -1082,13 +1124,13 @@ Confirm `activeThread.messages` exists on the `Thread` type; if the field name d
 Add the accept handler (near `onComposerCommandKey`, line 1748):
 
 ```tsx
-  const onAcceptGhostPrediction = useCallback(() => {
-    if (!prediction) return;
-    setPrompt(prediction);
-    clearPrediction();
-    // Move the caret to the end of the freshly-filled prompt.
-    requestAnimationFrame(() => composerRef.current?.focusAtEnd());
-  }, [prediction, setPrompt, clearPrediction, composerRef]);
+const onAcceptGhostPrediction = useCallback(() => {
+  if (!prediction) return;
+  setPrompt(prediction);
+  clearPrediction();
+  // Move the caret to the end of the freshly-filled prompt.
+  requestAnimationFrame(() => composerRef.current?.focusAtEnd());
+}, [prediction, setPrompt, clearPrediction, composerRef]);
 ```
 
 `composerRef.current?.focusAtEnd()` uses the existing `ChatComposerHandle.focusAtEnd` (declared in this file's handle interface, line 400). Setting the draft prompt flows back into the editor via the controlled `value` prop, so no direct Lexical mutation is needed.
@@ -1157,6 +1199,7 @@ If behavior differs from the plan, note deviations and update this plan file, th
 ## Self-Review
 
 **Spec coverage:**
+
 - LLM prediction source → Tasks 2-5, 7. ✓
 - Trigger "after each assistant turn" (running→ready, empty) → Task 10 `shouldFetchPrediction`. ✓
 - Configurable model in settings (default fast) → Task 1 (`prediction.model`), consumed in Task 7. Model-picker UI intentionally deferred (Task 9 Step 3 note; spec YAGNI). ✓
@@ -1166,6 +1209,6 @@ If behavior differs from the plan, note deviations and update this plan file, th
 - Settings default OFF → Task 1. ✓
 - Redaction pass-through verified → confirmed in brainstorming (spread), no task needed. ✓
 
-**Placeholder scan:** No "TBD"/"handle edge cases"-style placeholders. Two steps intentionally instruct the implementer to *read a specific file to confirm an exact name* (test mock helper in Task 4; message-id accessor in Task 12; `useAtomCommand` shape in Task 10) — these are guardrails against guessing symbol names, not deferred work, and each gives the concrete fallback.
+**Placeholder scan:** No "TBD"/"handle edge cases"-style placeholders. Two steps intentionally instruct the implementer to _read a specific file to confirm an exact name_ (test mock helper in Task 4; message-id accessor in Task 12; `useAtomCommand` shape in Task 10) — these are guardrails against guessing symbol names, not deferred work, and each gives the concrete fallback.
 
 **Type consistency:** `generateNextMessagePrediction` / `NextMessagePredictionInput` / `NextMessagePredictionResult` used identically across Tasks 3-5, 7. `{ prediction: string }` is the single wire/return shape across Tasks 2, 3, 6, 7, 8. `prediction.enabled`/`prediction.model` consistent across Tasks 1, 7, 9, 12. `shouldFetchPrediction`/`nextPredictionKey` signatures match between Task 10 test and impl. `ghostText`/`onAcceptGhost` consistent between Tasks 11 and 12.

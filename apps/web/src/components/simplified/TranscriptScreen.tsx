@@ -13,9 +13,7 @@ export function TranscriptScreen({ threadRef }: { threadRef: ScopedThreadRef }) 
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4">
         {messages.length === 0 ? (
-          <div className="py-16 text-center text-sm text-muted-foreground">
-            No messages yet.
-          </div>
+          <div className="py-16 text-center text-sm text-muted-foreground">No messages yet.</div>
         ) : (
           messages
             .filter((m) => m.role === "user" || m.role === "assistant")
