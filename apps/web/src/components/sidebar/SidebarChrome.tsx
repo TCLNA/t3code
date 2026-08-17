@@ -18,7 +18,7 @@ import { useEnvironmentIdentificationMode } from "../../hooks/useSettings";
 import { cn } from "../../lib/utils";
 import { useUpdatePrimarySettings } from "../../hooks/useSettings";
 import { primaryServerSettingsAtom } from "../../state/server";
-import { usePrimaryEnvironment } from "../../state/environments";
+import { useEnvironments } from "../../state/environments";
 import { useVoiceStore } from "../../voice/useVoiceStore";
 import {
   resolveEnvironmentIdentificationPillLabel,
@@ -97,7 +97,7 @@ function SidebarBrand({ onBackdrop }: { onBackdrop: boolean }) {
     <Link
       aria-label="Go to threads"
       className={cn(
-        "sidebar-brand relative z-10 ml-[var(--workspace-titlebar-content-left)] h-7 w-fit min-w-0 shrink-0 items-center gap-1 overflow-hidden rounded-md outline-hidden ring-ring focus-visible:ring-2",
+        "relative z-10 ml-[var(--workspace-titlebar-content-left)] hidden h-7 w-fit min-w-0 shrink-0 items-center gap-1 overflow-hidden rounded-md outline-hidden ring-ring focus-visible:ring-2 md:flex",
         onBackdrop ? "text-white" : "text-foreground",
       )}
       to="/"
@@ -105,7 +105,7 @@ function SidebarBrand({ onBackdrop }: { onBackdrop: boolean }) {
       <T3Wordmark />
       <span
         className={cn(
-          "truncate text-sm font-medium tracking-tight",
+          "-translate-y-px truncate text-sm font-medium tracking-tight",
           onBackdrop ? "text-white/70" : "text-muted-foreground",
         )}
       >
@@ -143,15 +143,21 @@ function SidebarAudioModeButton() {
         : { Icon: VolumeXIcon, label: "No sound" };
 
   return (
-    <button
-      type="button"
-      title={`Audio: ${label} (click to change)`}
-      aria-label={`Audio: ${label} (click to change)`}
-      onClick={() => cycleAudioMode()}
-      className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-accent hover:text-foreground"
-    >
-      <Icon className="size-4" />
-    </button>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            aria-label={`Audio: ${label} (click to change)`}
+            onClick={() => cycleAudioMode()}
+            className="flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <Icon className="size-4" />
+          </button>
+        }
+      />
+      <TooltipPopup side="top">{`Audio: ${label} (click to change)`}</TooltipPopup>
+    </Tooltip>
   );
 }
 
@@ -241,9 +247,12 @@ export const SidebarChromeFooter = memo(function SidebarChromeFooter() {
           ? "pull-requests"
           : null,
   });
-  const primaryEnvironment = usePrimaryEnvironment();
-  const pullRequestsSupported =
-    primaryEnvironment?.serverConfig?.environment.capabilities.pullRequests === true;
+  const { environments } = useEnvironments();
+  // The page reads every connected server, so one of them offering pull requests is enough for
+  // the link to lead somewhere.
+  const pullRequestsSupported = environments.some(
+    (environment) => environment.serverConfig?.environment.capabilities.pullRequests === true,
+  );
   const closeMobileSidebar = useCallback(() => {
     if (isMobile) {
       setOpenMobile(false);
